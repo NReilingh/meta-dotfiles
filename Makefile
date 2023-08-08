@@ -1,3 +1,3 @@
-build/bin/mf: main.ts
+build/bin/mf: src/main.ts
 	mkdir -p build/bin
-	deno compile -A -o build/bin/mf main.ts
+	deno task compile
