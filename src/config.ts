@@ -1,4 +1,4 @@
-import { join } from 'std/path/mod.ts';
+import { join } from 'node:path';
 
 import { Store } from './core.ts';
 
@@ -17,7 +17,7 @@ declare global {
 
 export default {
   setup: function () {
-    const home = Deno.env.get('HOME')!;
+    const home = Bun.env.HOME!;
     globalThis.USER_HOME = home;
 
     const mf = join(home, '.files');

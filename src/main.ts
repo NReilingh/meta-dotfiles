@@ -1,12 +1,11 @@
 import config from './config.ts';
-import { parse } from "std/flags/mod.ts";
 import * as cmd from './commands/mod.ts';
 
 import { type Args } from './core.ts';
 
 config.setup();
 
-const args: Args = parse(Deno.args)._;
+const args: Args = Bun.argv.slice(2);
 
 const command = args.shift();
 
@@ -43,6 +42,11 @@ switch (command) {
 
   case 'doom': {
     console.log("Madvillainy");
+    break;
+  }
+
+  case 'debug': {
+    console.dir(globalThis);
     break;
   }
 

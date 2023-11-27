@@ -1,4 +1,9 @@
-import { join, common, relative, dirname } from "std/path/mod.ts";
+// import { join, common, relative, dirname } from "std/path/mod.ts";
+import { join, relative, dirname } from 'node:path';
+import common from 'common-path-prefix';
+import * as fsPromises from 'node:fs/promises';
+import * as fs from 'node:fs';
+import { exit } from 'node:process';
 
 export class Store {
   constructor (
@@ -71,7 +76,7 @@ export async function generate_map (fromStore: Store, relativeTo?: Store): Promi
 
     console.debug("recursing dir", dirPath);
 
-    for await (const dirEntry of Deno.readDir(dirPath)) {
+    for await (const dirEntry of fsPromises.readdir(dirPath)) {
       const storeEntry = join(dirPathRelativeToStore, dirEntry.name);
       const dirEntryPath = join(dirPath, dirEntry.name);
 
@@ -119,7 +124,7 @@ export async function sync_store (map: Map) {
   console.dir(map);
 
   try {
-    await Promise.all(map.map(e => Deno.copyFile(e.localFile, e.storeFile)));
+    await Promise.all(map.map(e => Bun.write(e.storeFile, e.localFile)));
   } catch (e) {
     console.error("Error syncing store");
     console.error(e);
@@ -148,8 +153,8 @@ export function dangerousCopyFileSync (fromPath: string, toPath: string) {
   // Check to see if parentDir exists
   const dirExists = (function () {
     try {
-      const dirInfo = Deno.statSync(parentDir);
-      if (dirInfo.isDirectory) {
+      const dirInfo = fs.statSync(parentDir);
+      if (dirInfo.isDirectory()) {
         return true;
       } else {
         throw new Error("Path component is not a directory");
@@ -162,21 +167,21 @@ export function dangerousCopyFileSync (fromPath: string, toPath: string) {
   if (!dirExists) {
     console.log("Creating parent directory");
     try {
-      Deno.mkdirSync(parentDir, { recursive: true });
+      fs.mkdirSync(parentDir, { recursive: true });
     } catch (e) {
       console.error(`Error creating parent directory ${parentDir}.`);
       console.error(e);
-      Deno.exit(1);
+      process.exit(1);
     }
   }
 
   console.log(`Copying file ${fromPath} to ${toPath}.`);
 
   try {
-    Deno.copyFileSync(fromPath, toPath);
+    Bun.write(toPath, fromPath);
   } catch (e) {
     console.error("Error copying file to store");
     console.error(e);
-    Deno.exit(1);
+    process.exit(1);
   }
 }
