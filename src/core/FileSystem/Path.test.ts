@@ -1,6 +1,10 @@
 import { Path, AbsolutePath, RelativePath } from './Path.ts';
+import { Directory } from './Directory.ts';
+import { File } from './File.ts';
 
-import { test, expect } from 'bun:test';
+import { test, expect, describe, beforeAll, beforeEach } from 'bun:test';
+
+import * as fs from 'node:fs/promises';
 
 test('Path.isAbsolute', () => {
   expect(Path.isAbsolute('/')).toBe(true);
@@ -37,11 +41,23 @@ test('RelativePath dirname', () => {
   const path = new RelativePath('a/b/c');
   expect(path.dirname().toString()).toBe('a/b');
 });
+test('AbsolutePath dirname', () => {
+  const path = new AbsolutePath('/a/b/c');
+  expect(path.dirname().toString()).toBe('/a/b');
+});
 
 test('RelativePath join', () => {
   const path = new RelativePath('a/b/c');
   expect(path.join(new RelativePath('d')).toString()).toBe('a/b/c/d');
-  expect(path.join(new RelativePath('d/')).toString()).toBe('a/b/c/d');
+  expect(path.join(new RelativePath('d/e')).toString()).toBe('a/b/c/d/e');
+  expect(path.join(new RelativePath('d', 'e', 'f')).toString()).toBe('a/b/c/d/e/f');
+});
+
+test('AbsolutePath join', () => {
+  const path = new AbsolutePath('/a/b/c');
+  expect(path.join(new RelativePath('d')).toString()).toBe('/a/b/c/d');
+  expect(path.join(new RelativePath('d/e')).toString()).toBe('/a/b/c/d/e');
+  expect(path.join(new RelativePath('d', 'e', 'f')).toString()).toBe('/a/b/c/d/e/f');
 });
 
 test('RelativePath resolve', () => {
@@ -86,3 +102,84 @@ test('AbsolutePath basic operations', () => {
   expect(() => new AbsolutePath('a/b/c')).toThrow('Invalid arguments');
   expect(() => new AbsolutePath('/a/b/c', new AbsolutePath('/x/y'))).toThrow('Invalid arguments');
 });
+
+describe('AbsolutePath filesystem operations', () => {
+  beforeAll(async () => {
+    await fs.rm('build/test', { recursive: true, force: true });
+    await fs.mkdir('build/test', { recursive: true });
+  });
+
+  test('File exists', async () => {
+    const not = new RelativePath('build/test/notexists').absolute();
+    expect(not.existsSync()).toBe(false);
+    expect(await not.exists()).toBe(false);
+
+    await fs.writeFile('build/test/exists', '');
+
+    const path = new RelativePath('build/test/exists').absolute();
+    expect(path.existsSync()).toBe(true);
+    expect(await path.exists()).toBe(true);
+  });
+
+  describe('Path node retrieval', async () => {
+    beforeEach(async () => {
+      await fs.rm('build/test/retrieve', { recursive: true, force: true });
+      await fs.mkdir('build/test/retrieve', { recursive: true });
+    });
+    test('stat file async', async () => {
+      await fs.writeFile('build/test/retrieve/file', '');
+      const path = new RelativePath('build/test/retrieve/file').absolute();
+      const node = await path.stat();
+      expect(node.constructor).toEqual(File);
+    });
+    test('stat file sync', async () => {
+      await fs.writeFile('build/test/retrieve/file', '');
+      const path = new RelativePath('build/test/retrieve/file').absolute();
+      const node = path.statSync();
+      expect(node.constructor).toEqual(File);
+    });
+    test('stat dir async', async () => {
+      const path = new RelativePath('build/test/retrieve').absolute();
+      const node = await path.stat();
+      expect(node.constructor).toEqual(Directory);
+    });
+    test('stat dir sync', async () => {
+      const path = new RelativePath('build/test/retrieve').absolute();
+      const node = path.statSync();
+      expect(node.constructor).toEqual(Directory);
+    });
+  });
+});
+
+describe('Path prefixes', () => {
+  test('No common prefix', () => {
+    const relPath = new RelativePath('a/b/c');
+    const absPath = new AbsolutePath('/a/b/c');
+    expect(Path.commonPrefix(relPath, absPath)).toBe(false);
+  });
+  test('Relative prefixes', () => {
+    expect(Path.commonPrefix(
+      new RelativePath('a/b/c'),
+      new RelativePath('a/b/c/d'),
+      new RelativePath('a/b'),
+    ).toString()).toBe('a/b');
+  });
+  test('Absolute prefixes', () => {
+    expect(Path.commonPrefix(
+      new AbsolutePath('/a/b/c'),
+      new AbsolutePath('/a/b/z/d'),
+    ).toString()).toBe('/a/b');
+  });
+  test('Instance method', () => {
+    const path = new RelativePath('a/b/c');
+    expect(path.commonPrefix(new RelativePath('x/y/z'))).toBe(false);
+    expect(path.commonPrefix(new RelativePath('a/g/g')).toString()).toBe('a');
+  });
+  test('hasPrefix', () => {
+    const path = new AbsolutePath('/a/b/c');
+    expect(path.hasPrefix(new AbsolutePath('/a/b/z'))).toBe(false);
+    expect(path.hasPrefix(new AbsolutePath('/a/b/c'))).toBe(true);
+    expect(path.hasPrefix(new AbsolutePath('/a/b'))).toBe(true);
+  });
+});
+

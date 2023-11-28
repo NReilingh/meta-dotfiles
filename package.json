@@ -6,7 +6,7 @@
     "bun-types": "latest"
   },
   "scripts": {
-    "dev": "bun test --watch",
+    "dev": "bun test --watch --coverage",
     "compile": "bun build ./src/main.ts --outfile build/bin/mf",
     "test": "bun test --coverage"
   },

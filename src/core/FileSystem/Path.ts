@@ -1,6 +1,9 @@
 import { Node } from './Node.ts';
+import { Directory } from './Directory.ts';
+import { File } from './File.ts';
 import { dirname, join, normalize } from 'node:path';
 import common from 'common-path-prefix';
+import * as fs from 'node:fs';
 
 /**
  * Abstract class representing a path, either relative or absolute.
@@ -12,6 +15,9 @@ export abstract class Path {
 
   constructor (path: string) {
     // All paths are to be normalized.
+    if (path.length === 0) {
+      throw new Error('Path cannot be empty');
+    }
     this.path = normalize(path);
     // Remove final character if it is a slash
     if (this.path[this.path.length - 1] === '/') {
@@ -22,15 +28,23 @@ export abstract class Path {
   abstract dirname (): Path;
   abstract join (suffix: RelativePath): Path;
 
-  static commonPrefix (...paths: Path[]): Path {
+  static commonPrefix (...paths: Path[]): Path | false {
     const prefix = common(paths.map(path => path.toString()));
+    if (prefix.length === 0) {
+      return false;
+    }
     return Path.isAbsolute(prefix)
       ? new AbsolutePath(prefix)
       : new RelativePath(prefix);
   }
-  commonPrefix (...paths: Path[]): Path {
+  commonPrefix (...paths: Path[]): Path | false {
     return Path.commonPrefix(this, ...paths);
   }
+
+  hasPrefix (prefix: Path): boolean {
+    return this.commonPrefix(prefix).toString() === prefix.toString();
+  }
+
   toString (): string {
     return this.path;
   }
@@ -61,6 +75,11 @@ export class RelativePath extends Path {
     return new RelativePath(join(this.toString(), suffix.toString()));
   }
 
+  /**
+   * 
+   * Derive an absolute path relative to the current working directory.
+   *
+   */
   absolute (): AbsolutePath {
     return this.resolve(new AbsolutePath(process.cwd()));
   }
@@ -116,25 +135,19 @@ export class AbsolutePath extends Path {
     return new AbsolutePath(join(this.toString(), suffix.toString()));
   }
 
-  stat (): Promise<Node | false> {
-    // TODO: Implement
-    // Also: decide if we need stat at all.
-    // Who actually cares about file statistics?
-    // We can use fs.access instead for .exists.
-    return new Promise((res) => { res(false); });
+  async stat (): Promise<Node | false> {
+    return Node.stat(this);
   }
+
   statSync (): Node | false {
-    return false;
+    return Node.statSync(this);
   }
-  exists (): Promise<boolean> {
-    return new Promise((res) => {
-      this.stat().then((node) => {
-        res(!!node);
-      });
-    });
+
+  async exists (): Promise<boolean> {
+    return Node.exists(this);
   }
   existsSync (): boolean {
-    return !!this.statSync();
+    return Node.existsSync(this);
   }
 }
 
