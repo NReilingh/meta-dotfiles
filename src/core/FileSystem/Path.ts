@@ -1,9 +1,6 @@
 import { Node } from './Node.ts';
-import { Directory } from './Directory.ts';
-import { File } from './File.ts';
 import { dirname, join, normalize } from 'node:path';
 import common from 'common-path-prefix';
-import * as fs from 'node:fs';
 
 /**
  * Abstract class representing a path, either relative or absolute.

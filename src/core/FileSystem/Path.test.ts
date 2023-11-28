@@ -1,6 +1,5 @@
 import { Path, AbsolutePath, RelativePath } from './Path.ts';
-import { Directory } from './Directory.ts';
-import { File } from './File.ts';
+import { File, Directory } from './Node.ts';
 
 import { test, expect, describe, beforeAll, beforeEach } from 'bun:test';
 
@@ -130,23 +129,23 @@ describe('AbsolutePath filesystem operations', () => {
       await fs.writeFile('build/test/retrieve/file', '');
       const path = new RelativePath('build/test/retrieve/file').absolute();
       const node = await path.stat();
-      expect(node.constructor).toEqual(File);
+      expect(node instanceof File).toBeTrue();
     });
     test('stat file sync', async () => {
       await fs.writeFile('build/test/retrieve/file', '');
       const path = new RelativePath('build/test/retrieve/file').absolute();
       const node = path.statSync();
-      expect(node.constructor).toEqual(File);
+      expect(node instanceof File).toBeTrue();
     });
     test('stat dir async', async () => {
       const path = new RelativePath('build/test/retrieve').absolute();
       const node = await path.stat();
-      expect(node.constructor).toEqual(Directory);
+      expect(node instanceof Directory).toBeTrue();
     });
     test('stat dir sync', async () => {
       const path = new RelativePath('build/test/retrieve').absolute();
       const node = path.statSync();
-      expect(node.constructor).toEqual(Directory);
+      expect(node instanceof Directory).toBeTrue();
     });
   });
 });
