@@ -40,29 +40,29 @@ describe('Node instantiation', () => {
     const path = new RelativePath(TR + 'construct/dir').absolute();
     const node = await Node.fromPath(path);
     expect(node).toBeTruthy();
-    expect(node instanceof Node).toBeTrue();
-    expect(node instanceof Directory).toBeTrue();
+    expect(node).toBeInstanceOf(Node);
+    expect(node).toBeInstanceOf(Directory);
   });
   test('Dir from path sync', async () => {
     const path = new RelativePath(TR + 'construct/dir').absolute();
     const node = Node.fromPathSync(path);
     expect(node).toBeTruthy();
-    expect(node instanceof Node).toBeTrue();
-    expect(node instanceof Directory).toBeTrue();
+    expect(node).toBeInstanceOf(Node);
+    expect(node).toBeInstanceOf(Directory);
   });
   test('File from path async', async () => {
     const path = new RelativePath(TR + 'construct/file').absolute();
     const node = await Node.fromPath(path);
     expect(node).toBeTruthy();
-    expect(node instanceof Node).toBeTrue();
-    expect(node instanceof File).toBeTrue();
+    expect(node).toBeInstanceOf(Node);
+    expect(node).toBeInstanceOf(File);
   });
   test('Dir from path sync', async () => {
     const path = new RelativePath(TR + 'construct/file').absolute();
     const node = Node.fromPathSync(path);
     expect(node).toBeTruthy();
-    expect(node instanceof Node).toBeTrue();
-    expect(node instanceof File).toBeTrue();
+    expect(node).toBeInstanceOf(Node);
+    expect(node).toBeInstanceOf(File);
   });
 });
 
@@ -82,14 +82,14 @@ describe('Directory class', () => {
     test('One directory level async memoed', async () => {
       const path = new RelativePath(TR + 'dir/ret').absolute();
       const node = await path.stat();
-      expect(node instanceof Node).toBeTrue();
-      expect(node instanceof Directory).toBeTrue();
+      expect(node).toBeInstanceOf(Node);
+      expect(node).toBeInstanceOf(Directory);
       const dirContentPromise = (node as Directory).retrieve();
-      expect(dirContentPromise instanceof Promise);
+      expect(dirContentPromise).toBeInstanceOf(Promise);
       const dirContent: DirContent = await dirContentPromise;
-      expect(dirContent instanceof Array).toBeTrue();
+      expect(dirContent).toBeInstanceOf(Array);
       const dirContentLazy = (node as Node).retrieve();
-      expect(dirContentLazy instanceof Array).toBeTrue();
+      expect(dirContentLazy).toBeInstanceOf(Array);
       expect(dirContent).toEqual(dirContentLazy as DirContent);
       expect(dirContent).toBeArrayOfSize(3);
       const sortedDirPaths = dirContent.map(e => e.path.toString()).sort();
@@ -102,15 +102,29 @@ describe('Directory class', () => {
       const path = new RelativePath(TR + 'dir/ret').absolute();
       const node = await path.stat();
       const dirContent = (node as Directory).retrieveSync();
-      expect(dirContent instanceof Array).toBeTrue();
+      expect(dirContent).toBeInstanceOf(Array);
       const dirContentLazy = (node as Node).retrieve();
-      expect(dirContentLazy instanceof Array).toBeTrue();
+      expect(dirContentLazy).toBeInstanceOf(Array);
       expect(dirContent).toEqual(dirContentLazy as DirContent);
       expect(dirContent).toBeArrayOfSize(3);
       const sortedDirPaths = dirContent.map(e => e.path.toString()).sort();
       expect(sortedDirPaths[0]).toContain('ret/fileone');
       expect(sortedDirPaths[1]).toContain('ret/filetwo');
       expect(sortedDirPaths[2]).toContain('ret/sub');
+    });
+
+    test.todo('Recursive directory retrieval', async () => {
+      const path = new RelativePath(TR + 'dir/ret').absolute();
+      const node = await path.stat();
+      const dirContent = (node as Directory).retrieve({ recursive: true });
+      expect(dirContent).toBeInstanceOf(Array);
+      expect(dirContent).toBeArrayOfSize(5);
+      const sortedDirPaths = dirContent.map(e => e.path.toString()).sort();
+      expect(sortedDirPaths[0]).toContain('ret/fileone');
+      expect(sortedDirPaths[1]).toContain('ret/filetwo');
+      expect(sortedDirPaths[2]).toContain('ret/sub');
+      expect(sortedDirPaths[3]).toContain('ret/sub/child');
+      expect(sortedDirPaths[4]).toContain('ret/sub/filethree');
     });
   });
 });
@@ -122,8 +136,8 @@ describe('File class', () => {
     beforeAll(async () => {
       await fs.writeFile(TR + 'File/retrieve', '');
     });
-    test.skip('FileContent type async', async () => {
-      const path = new RelativePath(TR + 'file/retrieve').absolute();
+    test('FileContent type async', async () => {
+      const path = new RelativePath(TR + 'File/retrieve').absolute();
       const file = await Node.fromPath(path);
       const content = (file as Node).retrieve()
       expect(content).toHaveProperty('text');
@@ -131,8 +145,8 @@ describe('File class', () => {
       expect(content).toHaveProperty('arrayBuffer');
       expect(content).toHaveProperty('json');
     });
-    test.skip('FileContent type sync', async () => {
-      const path = new RelativePath(TR + 'file/retrieve').absolute();
+    test('FileContent type sync', async () => {
+      const path = new RelativePath(TR + 'File/retrieve').absolute();
       const file = await Node.fromPath(path);
       const content = (file as Node).retrieveSync()
       expect(content).toHaveProperty('text');
@@ -140,11 +154,42 @@ describe('File class', () => {
       expect(content).toHaveProperty('arrayBuffer');
       expect(content).toHaveProperty('json');
     });
-    test.todo('FileContent text', async () => {
-      const path = new RelativePath(TR + 'file/retrieve').absolute();
+    test('FileContent text', async () => {
+      await fs.writeFile(TR + 'File/text', 'helloworld');
+      const path = new RelativePath(TR + 'File/text').absolute();
       const file = await Node.fromPath(path);
-      const content = (file as Node).retrieve()
-      const text = content.text();
+      const content = (file as File).retrieve();
+      expect(await content.text()).toEqual('helloworld');
+      expect(content.text()).toEqual('helloworld');
+    });
+    test('FileContent stream', async () => {
+      await fs.writeFile(TR + 'File/stream', 'helloworld');
+      const path = new RelativePath(TR + 'File/stream').absolute();
+      const file = await Node.fromPath(path);
+      const stream = (file as File).retrieve().stream();
+      expect(stream).toBeInstanceOf(ReadableStream);
+      const chunks = [];
+      for await (const chunk of stream) {
+        chunks.push(Buffer.from(chunk));
+      }
+      expect(Buffer.concat(chunks).toString()).toEqual('helloworld');
+    });
+    test('FileContent arrayBuffer', async () => {
+      await fs.writeFile(TR + 'File/arrayBuffer', 'helloworld');
+      const path = new RelativePath(TR + 'File/arrayBuffer').absolute();
+      const file = await Node.fromPath(path);
+      const content = (file as File).retrieve();
+      const expected = new TextEncoder().encode('helloworld').buffer as ArrayBuffer;
+      expect(await content.arrayBuffer()).toEqual(expected);
+      expect(content.arrayBuffer()).toEqual(expected);
+    });
+    test('FileContent json', async () => {
+      await fs.writeFile(TR + 'File/json', '{"hello": "world"}');
+      const path = new RelativePath(TR + 'File/json').absolute();
+      const file = await Node.fromPath(path);
+      const content = (file as File).retrieve();
+      expect(await content.json()).toEqual({ hello: 'world' });
+      expect(content.json()).toEqual({ hello: 'world' });
     });
   });
 });

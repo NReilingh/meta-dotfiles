@@ -6,7 +6,7 @@ type NodeContent = Promise<DirContent> | DirContent | FileContent;
 export type DirContent = Array<Node>;
 export type FileContent = {
   text (): string | Promise<string>,
-  stream (): ReadableStream | Promise<ReadableStream>,
+  stream (): ReadableStream,
   arrayBuffer (): ArrayBuffer | Promise<ArrayBuffer>,
   json (): any | Promise<any>
 };
@@ -92,19 +92,55 @@ export abstract class Node {
 }
 
 export class File extends Node {
+  private textContent?: string;
+  private arrayBufferContent?: ArrayBuffer;
+  private jsonContent?: any;
+
   constructor (path: AbsolutePath, inode?: number) {
     super(path, inode);
   }
   retrieve (): FileContent {
-    return ({} as FileContent);
+    return {
+      text: () => {
+        if (this.textContent) {
+          return this.textContent;
+        }
+        return Bun.file(this.path.toString()).text().then(e => {
+          this.textContent = e;
+          return e;
+        });
+      },
+      stream: () => {
+        return Bun.file(this.path.toString()).stream();
+      },
+      arrayBuffer: () => {
+        if (this.arrayBufferContent) {
+          return this.arrayBufferContent;
+        }
+        return Bun.file(this.path.toString()).arrayBuffer().then(e => {
+          this.arrayBufferContent = e;
+          return e;
+        });
+      },
+      json: () => {
+        if (this.jsonContent) {
+          return this.jsonContent;
+        }
+        return Bun.file(this.path.toString()).json().then(e => {
+          this.jsonContent = e;
+          return e;
+        });
+      },
+    };
   }
 
   retrieveSync (): FileContent {
-    return ({} as FileContent);
+    return this.retrieve();
   }
 }
 export class Directory extends Node {
   private contents?: DirContent;
+  private recursiveContents?: DirContent;
 
   constructor (path: AbsolutePath, inode?: number) {
     super(path, inode);
@@ -120,11 +156,8 @@ export class Directory extends Node {
     }).filter(e => e !== undefined) as DirContent;
   }
 
-  retrieve (): Promise<DirContent> | DirContent {
-    if (this.contents) {
-      return this.contents;
-    }
-    const nodes = fs.promises.readdir(
+  private async retrieveDir (): Promise<DirContent> {
+    return fs.promises.readdir(
       this.path.toString(),
       {
         withFileTypes: true,
@@ -135,7 +168,22 @@ export class Directory extends Node {
     }).catch(e => {
       throw new Error(e);
     });
-    return nodes;
+  }
+  private async recursiveRetrieveDir (): Promise<DirContent> {
+  }
+
+  retrieve (opts?: { recursive: boolean }): Promise<DirContent> | DirContent {
+    if (opts?.recursive) {
+      if (this.recursiveContents) {
+        return this.recursiveContents;
+      }
+      return this.recursiveRetrieveDir();
+    } else {
+      if (this.contents) {
+        return this.contents;
+      }
+      return this.retrieveDir();
+    }
   }
 
   retrieveSync () : DirContent {
