@@ -1,19 +1,34 @@
 import * as fs from 'node:fs';
 
-// Define type Node as algebraic union of File and Directory
-import { AbsolutePath } from './Path.ts';
+import { AbsolutePath, RelativePath } from './Path.ts';
+
+type NodeContent = Promise<DirContent> | DirContent | FileContent;
+export type DirContent = Array<Node>;
+export type FileContent = {
+  text (): string | Promise<string>,
+  stream (): ReadableStream | Promise<ReadableStream>,
+  arrayBuffer (): ArrayBuffer | Promise<ArrayBuffer>,
+  json (): any | Promise<any>
+};
 
 export abstract class Node {
-  constructor(path: AbsolutePath, inode?: number) {
+  protected constructor(path: AbsolutePath, inode?: number) {
     this.path = path;
     this.inode = inode;
   }
-  public readonly path: AbsolutePath
-  public readonly inode?: number
+  public readonly path: AbsolutePath;
+  public readonly inode?: number;
 
-  static statSync (path: AbsolutePath): Node | false {
+  abstract retrieve (): NodeContent;
+  abstract retrieveSync (): NodeContent;
+
+  protected static absPathFromDirent (node: Node, entry: fs.Dirent): AbsolutePath {
+    return node.path.join(new RelativePath(entry.name));
+  }
+
+  static async fromPath (path: AbsolutePath): Promise<Node | false> {
     try {
-      const stats = fs.lstatSync(path.toString());
+      const stats = await fs.promises.lstat(path.toString());
       if (stats.isDirectory()) {
         return new Directory(path, stats.ino);
       } else if (stats.isFile()) {
@@ -29,9 +44,10 @@ export abstract class Node {
       }
     }
   }
-  static async stat (path: AbsolutePath): Promise<Node | false> {
+
+  static fromPathSync (path: AbsolutePath): Node | false {
     try {
-      const stats = await fs.promises.lstat(path.toString());
+      const stats = fs.lstatSync(path.toString());
       if (stats.isDirectory()) {
         return new Directory(path, stats.ino);
       } else if (stats.isFile()) {
@@ -79,9 +95,59 @@ export class File extends Node {
   constructor (path: AbsolutePath, inode?: number) {
     super(path, inode);
   }
+  retrieve (): FileContent {
+    return ({} as FileContent);
+  }
+
+  retrieveSync (): FileContent {
+    return ({} as FileContent);
+  }
 }
 export class Directory extends Node {
+  private contents?: DirContent;
+
   constructor (path: AbsolutePath, inode?: number) {
     super(path, inode);
   }
+
+  private mapNonrecursiveDirContent (entries: fs.Dirent[]): DirContent {
+    return entries.map(e => {
+      if (e.isFile()) {
+        return new File(Node.absPathFromDirent(this, e));
+      } else if (e.isDirectory()) {
+        return new Directory(Node.absPathFromDirent(this, e));
+      }
+    }).filter(e => e !== undefined) as DirContent;
+  }
+
+  retrieve (): Promise<DirContent> | DirContent {
+    if (this.contents) {
+      return this.contents;
+    }
+    const nodes = fs.promises.readdir(
+      this.path.toString(),
+      {
+        withFileTypes: true,
+      }
+    ).then(e => {
+      this.contents = this.mapNonrecursiveDirContent(e);
+      return this.contents;
+    }).catch(e => {
+      throw new Error(e);
+    });
+    return nodes;
+  }
+
+  retrieveSync () : DirContent {
+    return this.contents ??
+      (() => {
+        this.contents = this.mapNonrecursiveDirContent(
+          fs.readdirSync(
+            this.path.toString(),
+            { withFileTypes: true }
+          ));
+        return this.contents;
+      })();
+  }
 }
+

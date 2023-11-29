@@ -133,11 +133,11 @@ export class AbsolutePath extends Path {
   }
 
   async stat (): Promise<Node | false> {
-    return Node.stat(this);
+    return Node.fromPath(this);
   }
 
   statSync (): Node | false {
-    return Node.statSync(this);
+    return Node.fromPathSync(this);
   }
 
   async exists (): Promise<boolean> {
