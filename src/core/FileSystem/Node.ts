@@ -146,7 +146,8 @@ export class Directory extends Node {
     super(path, inode);
   }
 
-  private mapNonrecursiveDirContent (entries: fs.Dirent[]): DirContent {
+  // Defined as an arrow function so I can use it as a callback without calling `.bind()`.
+  private mapNonrecursiveDirContent = (entries: fs.Dirent[]): DirContent => {
     return entries.map(e => {
       if (e.isFile()) {
         return new File(Node.absPathFromDirent(this, e));
@@ -162,40 +163,57 @@ export class Directory extends Node {
       {
         withFileTypes: true,
       }
-    ).then(e => {
-      this.contents = this.mapNonrecursiveDirContent(e);
-      return this.contents;
-    }).catch(e => {
-      throw new Error(e);
+    )
+      .then(this.mapNonrecursiveDirContent);
+  }
+  private retrieveDirSync (): DirContent {
+    return this.mapNonrecursiveDirContent(
+      fs.readdirSync(
+        this.path.toString(),
+        { withFileTypes: true }
+      ));
+  }
+
+  private async recursiveRetrieveDir (): Promise<DirContent> {
+    return new Promise((resolve, _) => {
+      resolve([new File(new AbsolutePath('/'))]);
     });
   }
-  private async recursiveRetrieveDir (): Promise<DirContent> {
+  private recursiveRetrieveDirSync (): DirContent {
+    return [new File(new AbsolutePath('/'))];
   }
 
   retrieve (opts?: { recursive: boolean }): Promise<DirContent> | DirContent {
-    if (opts?.recursive) {
-      if (this.recursiveContents) {
-        return this.recursiveContents;
-      }
-      return this.recursiveRetrieveDir();
-    } else {
-      if (this.contents) {
-        return this.contents;
-      }
-      return this.retrieveDir();
+    if (opts?.recursive && this.recursiveContents) {
+      return this.recursiveContents;
     }
+    if (this.contents) {
+      return this.contents;
+    }
+
+    if (opts?.recursive) {
+      return this.recursiveRetrieveDir()
+        .then(dirContent => {
+          return this.recursiveContents = dirContent;
+        });
+    }
+    return this.retrieveDir()
+      .then(dirContent => {
+        return this.contents = dirContent;
+      });
   }
 
-  retrieveSync () : DirContent {
-    return this.contents ??
-      (() => {
-        this.contents = this.mapNonrecursiveDirContent(
-          fs.readdirSync(
-            this.path.toString(),
-            { withFileTypes: true }
-          ));
-        return this.contents;
-      })();
+  retrieveSync (opts?: { recursive: boolean }) : DirContent {
+    if (opts?.recursive && this.recursiveContents) {
+      return this.recursiveContents;
+    }
+    if (this.contents) {
+      return this.contents;
+    }
+
+    return opts?.recursive
+      ? this.recursiveContents = this.recursiveRetrieveDirSync()
+      : this.contents = this.retrieveDirSync();
   }
 }
 

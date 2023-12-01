@@ -103,7 +103,7 @@ describe('Directory class', () => {
       const node = await path.stat();
       const dirContent = (node as Directory).retrieveSync();
       expect(dirContent).toBeInstanceOf(Array);
-      const dirContentLazy = (node as Node).retrieve();
+      const dirContentLazy = (node as Node).retrieveSync();
       expect(dirContentLazy).toBeInstanceOf(Array);
       expect(dirContent).toEqual(dirContentLazy as DirContent);
       expect(dirContent).toBeArrayOfSize(3);
@@ -116,7 +116,7 @@ describe('Directory class', () => {
     test.todo('Recursive directory retrieval', async () => {
       const path = new RelativePath(TR + 'dir/ret').absolute();
       const node = await path.stat();
-      const dirContent = (node as Directory).retrieve({ recursive: true });
+      const dirContent = await (node as Directory).retrieve({ recursive: true });
       expect(dirContent).toBeInstanceOf(Array);
       expect(dirContent).toBeArrayOfSize(5);
       const sortedDirPaths = dirContent.map(e => e.path.toString()).sort();
