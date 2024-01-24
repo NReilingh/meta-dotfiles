@@ -110,13 +110,13 @@ describe('AbsolutePath filesystem operations', () => {
 
   test('File exists', async () => {
     const not = new RelativePath('build/test/notexists').absolute();
-    expect(not.existsSync()).toBe(false);
+    expect(not.exists({ sync: true })).toBe(false);
     expect(await not.exists()).toBe(false);
 
     await fs.writeFile('build/test/exists', '');
 
     const path = new RelativePath('build/test/exists').absolute();
-    expect(path.existsSync()).toBe(true);
+    expect(path.exists({ sync: true })).toBe(true);
     expect(await path.exists()).toBe(true);
   });
 
@@ -134,7 +134,7 @@ describe('AbsolutePath filesystem operations', () => {
     test('stat file sync', async () => {
       await fs.writeFile('build/test/retrieve/file', '');
       const path = new RelativePath('build/test/retrieve/file').absolute();
-      const node = path.statSync();
+      const node = path.stat({ sync: true });
       expect(node instanceof File).toBeTrue();
     });
     test('stat dir async', async () => {
@@ -144,7 +144,7 @@ describe('AbsolutePath filesystem operations', () => {
     });
     test('stat dir sync', async () => {
       const path = new RelativePath('build/test/retrieve').absolute();
-      const node = path.statSync();
+      const node = path.stat({ sync: true });
       expect(node instanceof Directory).toBeTrue();
     });
   });
@@ -179,6 +179,12 @@ describe('Path prefixes', () => {
     expect(path.hasPrefix(new AbsolutePath('/a/b/z'))).toBe(false);
     expect(path.hasPrefix(new AbsolutePath('/a/b/c'))).toBe(true);
     expect(path.hasPrefix(new AbsolutePath('/a/b'))).toBe(true);
+  });
+  test('Partial prefixing', () => {
+    const prefix = new AbsolutePath('/a/b/c');
+    expect(new AbsolutePath('/a/b/crazy').hasPrefix(prefix)).toBe(false);
+    expect(new AbsolutePath('/a/b/c').hasPrefix(prefix)).toBe(true);
+    expect(new AbsolutePath('/a/b/c/d').hasPrefix(prefix)).toBe(true);
   });
 });
 

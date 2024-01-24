@@ -1,0 +1,27 @@
+@startuml meta-dotfiles synchronization sequence
+skinparam MaxMessageSize 240
+participant "Active Filesystem" as Active
+participant "Shadow Store" as Shadow
+participant "Common Store" as Common
+participant "Remote Store" as Remote
+group Refreshing
+    Remote -> Common: Can fail, sets store.remote = "live" | "offline"
+    Remote -> Shadow
+end
+group Transcribing
+    Active -> Shadow: Translates to store representation. If store.common.hasChanges, transcribe files from union filelist of Shadow and Common.
+end
+group Merging
+    Common -> Shadow: if (store.common.hasChanges). Can fail.
+end
+group Deploying
+    Shadow -> Active: Translates from store representation to active files.
+end
+group Synchronizing
+    Shadow -> Common: Skip if store.common still hasChanges.
+end
+group Uploading
+    Shadow -> Remote: if (store.remote === 'live')
+    Common -> Remote
+end
+@enduml

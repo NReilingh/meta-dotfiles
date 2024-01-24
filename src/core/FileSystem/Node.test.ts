@@ -1,5 +1,5 @@
-import { RelativePath } from './Path.ts';
-import { Node, File, Directory, DirContent } from './Node.ts';
+import { AbsolutePath, RelativePath } from './Path.ts';
+import { Node, File, Directory, DirContent, DirRetrieveOpts } from './Node.ts';
 import { test, expect, describe, beforeAll } from 'bun:test';
 import * as fs from 'node:fs/promises';
 
@@ -32,7 +32,7 @@ describe('Node instantiation', () => {
     });
     test('Missing dir sync', async () => {
       const path = new RelativePath(TR + 'construct/missing').absolute();
-      const node = Node.fromPathSync(path);
+      const node = Node.fromPath(path, { sync: true });
       expect(node).toBeFalse();
     });
   });
@@ -45,7 +45,7 @@ describe('Node instantiation', () => {
   });
   test('Dir from path sync', async () => {
     const path = new RelativePath(TR + 'construct/dir').absolute();
-    const node = Node.fromPathSync(path);
+    const node = Node.fromPath(path, { sync: true });
     expect(node).toBeTruthy();
     expect(node).toBeInstanceOf(Node);
     expect(node).toBeInstanceOf(Directory);
@@ -59,7 +59,7 @@ describe('Node instantiation', () => {
   });
   test('Dir from path sync', async () => {
     const path = new RelativePath(TR + 'construct/file').absolute();
-    const node = Node.fromPathSync(path);
+    const node = Node.fromPath(path, { sync: true });
     expect(node).toBeTruthy();
     expect(node).toBeInstanceOf(Node);
     expect(node).toBeInstanceOf(File);
@@ -101,9 +101,9 @@ describe('Directory class', () => {
     test('One directory level sync memoed', async () => {
       const path = new RelativePath(TR + 'dir/ret').absolute();
       const node = await path.stat();
-      const dirContent = (node as Directory).retrieveSync();
+      const dirContent = (node as Directory).retrieve({ sync: true });
       expect(dirContent).toBeInstanceOf(Array);
-      const dirContentLazy = (node as Node).retrieveSync();
+      const dirContentLazy = (node as Node).retrieve({ sync: true });
       expect(dirContentLazy).toBeInstanceOf(Array);
       expect(dirContent).toEqual(dirContentLazy as DirContent);
       expect(dirContent).toBeArrayOfSize(3);
@@ -113,7 +113,49 @@ describe('Directory class', () => {
       expect(sortedDirPaths[2]).toContain('ret/sub');
     });
 
-    test.todo('Recursive directory retrieval', async () => {
+    describe('Descendant Path filtering', () => {
+      async function pathsFromFilterOpts (opts: DirRetrieveOpts): Promise<AbsolutePath[]> {
+        const dir = Node.fromPath(new RelativePath(TR + 'dir/ret').absolute(), { sync: true }) as Directory;
+        const entries = await fs.readdir(dir.path.toString(), { withFileTypes: true, recursive: true });
+        return dir['descendantPathsFilter'](entries, opts);
+      }
+      test('descendantPathsFilter recursive', async () => {
+        const paths = await pathsFromFilterOpts({ recursive: true });
+        expect(paths).toBeInstanceOf(Array);
+        expect(paths).toBeArrayOfSize(3);
+        expect(paths[0]).toBeInstanceOf(AbsolutePath);
+        paths.sort((a, b) => a.toString().localeCompare(b.toString()));
+        expect(paths[0].toString()).toContain('ret/fileone');
+      });
+    });
+
+    test('Get recursive descendant file paths async', async () => {
+      const dir = Node.fromPath(new RelativePath(TR + 'dir/ret').absolute(), { sync: true }) as Directory;
+      const paths = await dir.fileDescendantPaths();
+      expect(paths).toBeInstanceOf(Array);
+      expect(paths).toBeArrayOfSize(3);
+      expect(paths[0]).toBeInstanceOf(AbsolutePath);
+      paths.sort((a, b) => a.toString().localeCompare(b.toString()));
+      expect(paths[0].toString()).toContain('ret/fileone');
+      expect(paths[1].toString()).toContain('ret/filetwo');
+      expect(paths[2].toString()).toContain('ret/sub/filethree');
+    });
+
+    test('Get recursive descendant file paths sync', async () => {
+      const dir = Node.fromPath(new RelativePath(TR + 'dir/ret').absolute(), { sync: true }) as Directory;
+      const paths = dir.fileDescendantPaths({ sync: true });
+      expect(paths).toBeInstanceOf(Array);
+      expect(paths).toBeArrayOfSize(3);
+      expect(paths[0]).toBeInstanceOf(AbsolutePath);
+      paths.sort((a, b) => a.toString().localeCompare(b.toString()));
+      expect(paths[0].toString()).toContain('ret/fileone');
+      expect(paths[1].toString()).toContain('ret/filetwo');
+      expect(paths[2].toString()).toContain('ret/sub/filethree');
+    });
+
+    // test('Exclude 
+
+    test.skip('Recursive directory retrieval', async () => {
       const path = new RelativePath(TR + 'dir/ret').absolute();
       const node = await path.stat();
       const dirContent = await (node as Directory).retrieve({ recursive: true });
@@ -148,7 +190,7 @@ describe('File class', () => {
     test('FileContent type sync', async () => {
       const path = new RelativePath(TR + 'File/retrieve').absolute();
       const file = await Node.fromPath(path);
-      const content = (file as Node).retrieveSync()
+      const content = (file as Node).retrieve({ sync: true })
       expect(content).toHaveProperty('text');
       expect(content).toHaveProperty('stream');
       expect(content).toHaveProperty('arrayBuffer');

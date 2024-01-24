@@ -1,6 +1,7 @@
 import * as fs from 'node:fs';
 
 import { AbsolutePath, RelativePath } from './Path.ts';
+import { MaybePromiseOf } from './index.ts';
 
 type NodeContent = Promise<DirContent> | DirContent | FileContent;
 export type DirContent = Array<Node>;
@@ -9,6 +10,31 @@ export type FileContent = {
   stream (): ReadableStream,
   arrayBuffer (): ArrayBuffer | Promise<ArrayBuffer>,
   json (): any | Promise<any>
+};
+
+export type DirRetrieveOpts = {
+  sync?: boolean,
+  recursive?: boolean
+  excludeRelative?: RelativePath[],
+  excludeAbsolute?: AbsolutePath[]
+};
+
+export type DirRetrieveParsedOpts = {
+  excludeRelative: {
+    path: RelativePath,
+    name: RelativePath,
+    parentPath: RelativePath,
+  }[],
+  excludeAbsolute: {
+    path: AbsolutePath,
+    name: RelativePath,
+    parentPath: AbsolutePath,
+  }[]
+};
+
+type DirContentMemo = {
+  content: DirContent,
+  query: DirRetrieveParsedOpts
 };
 
 export abstract class Node {
@@ -20,15 +46,13 @@ export abstract class Node {
   public readonly inode?: number;
 
   abstract retrieve (): NodeContent;
-  abstract retrieveSync (): NodeContent;
 
-  protected static absPathFromDirent (node: Node, entry: fs.Dirent): AbsolutePath {
-    return node.path.join(new RelativePath(entry.name));
+  protected static absPathFromDirent (entry: fs.Dirent): AbsolutePath {
+    return new AbsolutePath(entry.parentPath).join(new RelativePath(entry.name));
   }
 
-  static async fromPath (path: AbsolutePath): Promise<Node | false> {
-    try {
-      const stats = await fs.promises.lstat(path.toString());
+  static fromPath (path: AbsolutePath, opts?: { sync: boolean }): MaybePromiseOf<Node | false> {
+    function filter (stats: fs.Stats): Node | false {
       if (stats.isDirectory()) {
         return new Directory(path, stats.ino);
       } else if (stats.isFile()) {
@@ -36,59 +60,48 @@ export abstract class Node {
       } else {
         throw new Error('Path is neither file nor directory');
       }
-    } catch (e: any) {
+    }
+    function catchErr (e: any): false {
       if (e.code === 'ENOENT') {
         return false;
       } else {
         throw e;
       }
     }
+
+    if (opts?.sync) {
+      try {
+        const stats = fs.lstatSync(path.toString());
+        return filter(stats);
+      } catch (e: any) {
+        return catchErr(e);
+      }
+    }
+
+    const stats = fs.promises.lstat(path.toString());
+    return stats.then(filter).catch(catchErr);
   }
 
-  static fromPathSync (path: AbsolutePath): Node | false {
-    try {
-      const stats = fs.lstatSync(path.toString());
-      if (stats.isDirectory()) {
-        return new Directory(path, stats.ino);
-      } else if (stats.isFile()) {
-        return new File(path, stats.ino);
-      } else {
-        throw new Error('Path is neither file nor directory');
-      }
-    } catch (e: any) {
+  static exists (path: AbsolutePath, opts?: { sync: boolean }): MaybePromiseOf<boolean> {
+    function catchErr (e: any): false {
       if (e.code === 'ENOENT') {
         return false;
       } else {
         throw e;
       }
     }
+    if (opts?.sync) {
+      try {
+        fs.accessSync(path.toString());
+        return true;
+      } catch (e: any) {
+        return catchErr(e);
+      }
+    }
+    const prom = fs.promises.access(path.toString());
+    return prom.then(() => true).catch(catchErr);
   }
 
-  static async exists (path: AbsolutePath): Promise<boolean> {
-    try {
-      await fs.promises.access(path.toString());
-      return true;
-    } catch (e: any) {
-      if (e.code === 'ENOENT') {
-        return false;
-      } else {
-        throw e;
-      }
-    }
-  }
-
-  static existsSync (path: AbsolutePath): boolean {
-    try {
-      fs.accessSync(path.toString());
-      return true;
-    } catch (e: any) {
-      if (e.code === 'ENOENT') {
-        return false;
-      } else {
-        throw e;
-      }
-    }
-  }
 }
 
 export class File extends Node {
@@ -133,12 +146,10 @@ export class File extends Node {
       },
     };
   }
-
-  retrieveSync (): FileContent {
-    return this.retrieve();
-  }
 }
+
 export class Directory extends Node {
+  private contentMemo?: DirContentMemo;
   private contents?: DirContent;
   private recursiveContents?: DirContent;
 
@@ -150,9 +161,9 @@ export class Directory extends Node {
   private mapNonrecursiveDirContent = (entries: fs.Dirent[]): DirContent => {
     return entries.map(e => {
       if (e.isFile()) {
-        return new File(Node.absPathFromDirent(this, e));
+        return new File(Node.absPathFromDirent(e));
       } else if (e.isDirectory()) {
-        return new Directory(Node.absPathFromDirent(this, e));
+        return new Directory(Node.absPathFromDirent(e));
       }
     }).filter(e => e !== undefined) as DirContent;
   }
@@ -174,16 +185,20 @@ export class Directory extends Node {
       ));
   }
 
-  private async recursiveRetrieveDir (): Promise<DirContent> {
-    return new Promise((resolve, _) => {
-      resolve([new File(new AbsolutePath('/'))]);
-    });
-  }
-  private recursiveRetrieveDirSync (): DirContent {
-    return [new File(new AbsolutePath('/'))];
-  }
+  retrieve (opts?: DirRetrieveOpts): Promise<DirContent> | DirContent {
+    if (opts?.sync) {
+      if (opts?.recursive && this.recursiveContents) {
+        return this.recursiveContents;
+      }
+      if (this.contents) {
+        return this.contents;
+      }
 
-  retrieve (opts?: { recursive: boolean }): Promise<DirContent> | DirContent {
+      return opts?.recursive
+        ? never
+        : this.contents = this.retrieveDirSync();
+    }
+
     if (opts?.recursive && this.recursiveContents) {
       return this.recursiveContents;
     }
@@ -203,17 +218,23 @@ export class Directory extends Node {
       });
   }
 
-  retrieveSync (opts?: { recursive: boolean }) : DirContent {
-    if (opts?.recursive && this.recursiveContents) {
-      return this.recursiveContents;
-    }
-    if (this.contents) {
-      return this.contents;
-    }
+  private descendantPathsFilter = (entries: fs.Dirent[], opts?: DirRetrieveOpts): AbsolutePath[] => {
+    return entries.filter(e => {
+      return e.isFile()
+      && !opts?.excludeAbsolute?.some(ex => ex.toString() === e.name)
+      && !opts?.excludeAbsolute?.some(ex => new AbsolutePath(e.name).hasPrefix(ex))
+      && !opts?.excludeRelative?.some(ex => e.name.endsWith('/' + ex.toString()));
+    }).map(e => Node.absPathFromDirent(e));
+  }
 
-    return opts?.recursive
-      ? this.recursiveContents = this.recursiveRetrieveDirSync()
-      : this.contents = this.retrieveDirSync();
+  // descendantFilePaths
+  fileDescendantPaths (opts?: DirRetrieveOpts): Promise<AbsolutePath[]> {
+    if (opts?.sync) {
+      const results: Array<fs.Dirent> = fs.readdirSync(this.path.toString(), { withFileTypes: true, recursive: true });
+      return this.descendantPathsFilter(results, opts);
+    }
+    const promise: Promise<Array<fs.Dirent>> = fs.promises.readdir(this.path.toString(), { withFileTypes: true, recursive: true });
+    return promise.then(d => this.descendantPathsFilter(d, opts));
   }
 }
 

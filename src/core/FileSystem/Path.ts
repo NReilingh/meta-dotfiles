@@ -2,6 +2,7 @@ import { Node } from './Node.ts';
 import { dirname, join, normalize } from 'node:path';
 import common from 'common-path-prefix';
 
+import { MaybePromiseOf } from './index.ts';
 /**
  * Abstract class representing a path, either relative or absolute.
  *
@@ -132,19 +133,18 @@ export class AbsolutePath extends Path {
     return new AbsolutePath(join(this.toString(), suffix.toString()));
   }
 
-  async stat (): Promise<Node | false> {
+  stat (opts?: { sync: boolean }): MaybePromiseOf<Node | false> {
+    if (opts?.sync) {
+      return Node.fromPath(this, { sync: true });
+    }
     return Node.fromPath(this);
   }
 
-  statSync (): Node | false {
-    return Node.fromPathSync(this);
-  }
-
-  async exists (): Promise<boolean> {
+  exists (opts?: { sync: boolean }): MaybePromiseOf<boolean> {
+    if (opts?.sync) {
+      return Node.exists(this, { sync: true });
+    }
     return Node.exists(this);
-  }
-  existsSync (): boolean {
-    return Node.existsSync(this);
   }
 }
 

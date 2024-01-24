@@ -1,57 +1,33 @@
 import config from './config.ts';
 import * as cmd from './commands/mod.ts';
 
-import { type Args } from './core.ts';
+import { Command, Options } from '@effect/cli';
+import { Console, Effect, Option } from 'effect';
+import { BunContext, Runtime } from '@effect/platform-bun';
 
 config.setup();
 
-const args: Args = Bun.argv.slice(2);
+const confirm = Options.boolean('confirm').pipe(Options.withAlias('c'));
+const command = Command
+  .make('mf', { confirm }, ({ confirm }) =>
+    Console.log(`Hello this is the mf command and we are${confirm ? '' : ' NOT'} in confirmation mode.`),
+  )
+  .pipe(Command.withSubcommands([
+    cmd.add,
+    cmd.init,
+    cmd.inherit,
+    cmd.join,
+    cmd.merge,
+    cmd.sync,
+  ]));
 
-const command = args.shift();
+const cli = Command.run(command, {
+  name: 'meta-dotfiles',
+  version: '0.0.1',
+});
 
-switch (command) {
-  case 'init': {
-    cmd.init();
-    break;
-  }
-
-  case 'join': {
-    cmd.join(args);
-    break;
-  }
-
-  case 'inherit': {
-    cmd.inherit(args);
-    break;
-  }
-
-  case 'add': {
-    cmd.add(args);
-    break;
-  }
-
-  case 'sync': {
-    cmd.sync();
-    break;
-  }
-
-  case 'merge': {
-    cmd.merge();
-    break;
-  }
-
-  case 'doom': {
-    console.log("Madvillainy");
-    break;
-  }
-
-  case 'debug': {
-    console.dir(globalThis);
-    break;
-  }
-
-  default: {
-    console.log("Unknown command", command);
-  }
-}
+Effect.suspend(() => cli(Bun.argv.slice(2))).pipe(
+  Effect.provide(BunContext.layer),
+  Runtime.runMain
+);
 
