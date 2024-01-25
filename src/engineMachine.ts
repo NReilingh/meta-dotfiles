@@ -1,4 +1,4 @@
-import { and, assign, fromCallback, raise, setup } from 'xstate';
+import { and, assign, type EventObject, fromCallback, raise, setup } from 'xstate';
 import { AbsolutePath } from './core/FileSystem/Path.ts';
 // import { Console } from 'effect';
 
@@ -18,8 +18,6 @@ type EngineParams = {
   initStoreJoinURI?: string,
   initStoreType?: StoreType,
 };
-
-type CallbackInput<Input> = { input: Input } & Parameters<Parameters<typeof fromCallback>[0]>[0];
 
 export const engineMachine = setup({
   actions: {
@@ -59,108 +57,108 @@ export const engineMachine = setup({
     }),
   },
   actors: {
-    'fileAdder': fromCallback(({ sendBack, input }: CallbackInput<{
+    'fileAdder': fromCallback<EventObject, {
       addFilePath: AbsolutePath | undefined,
-    }>) => {
+    }>(({ sendBack, input }) => {
       // ...
 
       return () => {
         // cleanup
       }
     }),
-    'storeCreator': fromCallback(({ sendBack, input }: CallbackInput<{
+    'storeCreator': fromCallback<EventObject, {
       storeType: StoreType | undefined,
-    }>) => {
+    }>(({ sendBack, input }) => {
       // ...
 
       return () => {
         // cleanup
       }
     }),
-    'storeDeployer': fromCallback(({ sendBack, input }: CallbackInput<{
+    'storeDeployer': fromCallback<EventObject, {
       shadowHasChanges: boolean,
       storeType: StoreType,
-    }>) => {
+    }>(({ sendBack, input }) => {
       // ...
 
       return () => {
         // cleanup
       }
     }),
-    'storeInheriter': fromCallback(({ sendBack, input }: CallbackInput<{
+    'storeInheriter': fromCallback<EventObject, {
       inheritMachine: InheritMachineParam | undefined,
-    }>) => {
+    }>(({ sendBack, input }) => {
       // ...
 
       return () => {
         // cleanup
       }
     }),
-    'storeInitializer': fromCallback(({ sendBack, input }: CallbackInput<{
+    'storeInitializer': fromCallback<EventObject, {
       newStore: boolean | undefined,
-    }>) => {
+    }>(({ sendBack, input }) => {
       // ...
 
       return () => {
         // cleanup
       }
     }),
-    'storeJoiner': fromCallback(({ sendBack, input }: CallbackInput<{
+    'storeJoiner': fromCallback<EventObject, {
       command: EngineCommand,
       inheritMachine: InheritMachineParam | undefined,
       joinType: StoreType | undefined,
       joinURI: string | undefined,
-    }>) => {
+    }>(({ sendBack, input }) => {
       // ...
 
       return () => {
         // cleanup
       }
     }),
-    'storeMerger': fromCallback(({ sendBack, input }: CallbackInput<{
+    'storeMerger': fromCallback<EventObject, {
       commonHasChanges: boolean,
       shadowHasChanges: boolean,
       storeType: StoreType,
-    }>) => {
+    }>(({ sendBack, input }) => {
       // ...
 
       return () => {
         // cleanup
       }
     }),
-    'storeRefresher': fromCallback(({ sendBack, input }: CallbackInput<{
+    'storeRefresher': fromCallback<EventObject, {
       storeType: StoreType,
-    }>) => {
+    }>(({ sendBack, input }) => {
       // ...
 
       return () => {
         // cleanup
       }
     }),
-    'storeSynchronizer': fromCallback(({ sendBack, input }: CallbackInput<{
+    'storeSynchronizer': fromCallback<EventObject, {
       shadowHasChanges: boolean,
       storeType: StoreType,
-    }>) => {
+    }>(({ sendBack, input }) => {
       // ...
 
       return () => {
         // cleanup
       }
     }),
-    'storeTranscriber': fromCallback(({ sendBack, input }: CallbackInput<{
+    'storeTranscriber': fromCallback<EventObject, {
       commonHasChanges: boolean,
       storeType: StoreType,
-    }>) => {
+    }>(({ sendBack, input }) => {
       // ...
 
       return () => {
         // cleanup
       }
     }),
-    'storeUploader': fromCallback(({ sendBack, input }: CallbackInput<{
+    'storeUploader': fromCallback<EventObject, {
       shadowHasChanges: boolean,
       storeType: StoreType,
-    }>) => {
+    }>(({ sendBack, input }) => {
       // ...
 
       return () => {
