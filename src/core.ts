@@ -76,41 +76,41 @@ export async function generate_map (fromStore: Store, relativeTo?: Store): Promi
 
     console.debug("recursing dir", dirPath);
 
-    for await (const dirEntry of fsPromises.readdir(dirPath)) {
-      const storeEntry = join(dirPathRelativeToStore, dirEntry.name);
-      const dirEntryPath = join(dirPath, dirEntry.name);
-
-      console.debug("processing storeEntry", storeEntry);
-
-      const excludePathList = [
-        '.git',
-        '.files/README.md',
-      ];
-
-      const excludeFileList = [
-        '.DS_Store',
-      ];
-
-      if (excludePathList.includes(storeEntry)) {
-        continue;
-      }
-
-      if (excludeFileList.includes(dirEntry.name)) {
-        continue;
-      }
-
-      if (dirEntry.isFile) {
-        const storeFile = new StoreFile(storeEntry, fromStore);
-
-        console.debug("Adding file to list", storeEntry);
-        list.push({
-          localFile: storeFile.hostPath,
-          storeFile: targetStore.storeLocation(storeFile.hostPath),
-        });
-      } else if (dirEntry.isDirectory) {
-        recurseJobs.push(mapFromStorePathRecursive(dirEntryPath));
-      }
-    }
+    // for await (const dirEntry of fsPromises.readdir(dirPath)) {
+    //   const storeEntry = join(dirPathRelativeToStore, dirEntry.name);
+    //   const dirEntryPath = join(dirPath, dirEntry.name);
+    //
+    //   console.debug("processing storeEntry", storeEntry);
+    //
+    //   const excludePathList = [
+    //     '.git',
+    //     '.files/README.md',
+    //   ];
+    //
+    //   const excludeFileList = [
+    //     '.DS_Store',
+    //   ];
+    //
+    //   if (excludePathList.includes(storeEntry)) {
+    //     continue;
+    //   }
+    //
+    //   if (excludeFileList.includes(dirEntry.name)) {
+    //     continue;
+    //   }
+    //
+    //   if (dirEntry.isFile) {
+    //     const storeFile = new StoreFile(storeEntry, fromStore);
+    //
+    //     console.debug("Adding file to list", storeEntry);
+    //     list.push({
+    //       localFile: storeFile.hostPath,
+    //       storeFile: targetStore.storeLocation(storeFile.hostPath),
+    //     });
+    //   } else if (dirEntry.isDirectory) {
+    //     recurseJobs.push(mapFromStorePathRecursive(dirEntryPath));
+    //   }
+    // }
     const recurseResults = await Promise.all(recurseJobs);
     return [...list, ...recurseResults.flat()];
   }

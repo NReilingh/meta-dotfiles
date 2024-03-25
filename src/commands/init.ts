@@ -8,7 +8,7 @@ function proceed (condition: string) {
 
   if (!result) {
     console.log("Aborting");
-    Deno.exit(0);
+    process.exit(0);
   }
 }
 
