@@ -132,19 +132,53 @@ export class AbsolutePath extends Path {
   join (suffix: RelativePath): AbsolutePath {
     return new AbsolutePath(join(this.toString(), suffix.toString()));
   }
-
-  stat (opts?: { sync: boolean }): MaybePromiseOf<Node | false> {
-    if (opts?.sync) {
-      return Node.fromPath(this, { sync: true });
-    }
-    return Node.fromPath(this);
-  }
-
-  exists (opts?: { sync: boolean }): MaybePromiseOf<boolean> {
-    if (opts?.sync) {
-      return Node.exists(this, { sync: true });
-    }
-    return Node.exists(this);
-  }
 }
+// type NodeMethodName = {
+//     [K in keyof Node]: Node[K] extends Function ? K : never
+// }[keyof Node];
+// type NodeMethodName = keyof Node;
+// type NodeMethodName = [K in keyof Node]: Node[K] extends Function ? K : never
+// Define a type that represents only the keys of `Node` that are methods you want to use
+// type NodeMethodKeys = 'exists' | 'stat' | 'retrieve' | 'content' | 'text' | 'stream' | 'arrayBuffer' | 'json';
+// type NodeMethodKeys = 'exists' | 'stat';
+type MethodKeys<T> = {
+  [K in keyof T]: T[K] extends Function ? K : never
+}[keyof T];
+
+// Use the MethodKeys type to generate NodeMethodKeys from Node
+type NodeMethodKeys = MethodKeys<typeof Node>;
+// Explicitly type your array of method names using the `NodeMethodKeys` type
+const methods: NodeMethodKeys[] = [
+  'exists',
+  'stat',
+  'retrieve',
+  'content',
+  'text',
+  'stream',
+  'arrayBuffer',
+  'json',
+];
+const entries = methods.map((method): [NodeMethodKeys, Function] => [
+  method,
+  // You might need to ensure `this` is correctly typed or use a different approach if `this` doesn't refer to what you expect
+  () => Node[method](this as unknown as AbsolutePath) // Assuming `this` is correctly context-bound and `Node[method]` is a static method
+]);
+Object.assign(
+  AbsolutePath,
+  Object.fromEntries(entries)
+);
+// Object.assign(
+//   AbsolutePath,
+//   Object.fromEntries([
+//       'exists',
+//       'stat',
+//       'retrieve',
+//       'content',
+//       'text',
+//       'stream',
+//       'arrayBuffer',
+//       'json'
+//     ].map(
+//     (method) => [method, () => Node[method](this)]
+//   )));
 

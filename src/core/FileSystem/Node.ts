@@ -37,7 +37,7 @@ type DirContentMemo = {
   query: DirRetrieveParsedOpts
 };
 
-export abstract class Node {
+export class Node {
   protected constructor(path: AbsolutePath, inode?: number) {
     this.path = path;
     this.inode = inode;
@@ -100,6 +100,11 @@ export abstract class Node {
     }
     const prom = fs.promises.access(path.toString());
     return prom.then(() => true).catch(catchErr);
+  }
+
+  static stat (path: AbsolutePath): MaybePromiseOf<Node | false> {
+    return Node.fromPath(path);
+  
   }
 
 }
