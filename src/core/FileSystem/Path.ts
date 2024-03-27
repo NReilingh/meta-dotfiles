@@ -151,20 +151,24 @@ type NodeMethodKeys = MethodKeys<typeof Node>;
 const methods: NodeMethodKeys[] = [
   'exists',
   'stat',
-  'retrieve',
-  'content',
-  'text',
-  'stream',
-  'arrayBuffer',
-  'json',
+  // 'retrieve',
+  // 'content',
+  // 'text',
+  // 'stream',
+  // 'arrayBuffer',
+  // 'json',
 ];
+
+type SelectedNodeMethods = 'exists' | 'stat';
+
 const entries = methods.map((method): [NodeMethodKeys, Function] => [
   method,
-  // You might need to ensure `this` is correctly typed or use a different approach if `this` doesn't refer to what you expect
-  () => Node[method](this as unknown as AbsolutePath) // Assuming `this` is correctly context-bound and `Node[method]` is a static method
+  function (this: AbsolutePath) {
+    return Node[method](this);
+  }
 ]);
 Object.assign(
-  AbsolutePath,
+  AbsolutePath.prototype,
   Object.fromEntries(entries)
 );
 // Object.assign(
@@ -179,6 +183,25 @@ Object.assign(
 //       'arrayBuffer',
 //       'json'
 //     ].map(
-//     (method) => [method, () => Node[method](this)]
+//     (method) => [method, Node[method]]
 //   )));
+//
+// console.dir(AbsolutePath);
+type StaticMethodsToInstance<T, Methods extends keyof T> = {
+  [P in Methods]: T[P] extends (...args: infer Args) => infer Return ? (...args: Args) => Return : never;
+};
 
+// Apply selected Node's methods to AbsolutePath via interface extension
+type NodeInstanceMethods = StaticMethodsToInstance<typeof Node, SelectedNodeMethods>;
+// type TransformToInstanceMethods<T> = {
+//   [P in keyof T]: () => ReturnType<T[P]>;
+// };
+type TransformToInstanceMethods<T> = {
+    [P in keyof T]: T[P] extends (...args: any[]) => infer Return ? () => Return : never;
+};
+type NodeMethodsSubset = Pick<typeof Node, SelectedNodeMethods>;
+type TransformedNodeMethods = TransformToInstanceMethods<NodeMethodsSubset>;
+
+export interface AbsolutePath extends TransformedNodeMethods {}
+const foo = new AbsolutePath('/a/b/c');
+foo.exists();
