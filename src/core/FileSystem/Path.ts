@@ -196,8 +196,10 @@ type NodeInstanceMethods = StaticMethodsToInstance<typeof Node, SelectedNodeMeth
 // type TransformToInstanceMethods<T> = {
 //   [P in keyof T]: () => ReturnType<T[P]>;
 // };
+type OmitFirstArg<Func> = Func extends (arg1: any, ...args: infer Rest) => infer Return ? (...args: Rest) => Return : never;
 type TransformToInstanceMethods<T> = {
-    [P in keyof T]: T[P] extends (...args: any[]) => infer Return ? () => Return : never;
+    // [P in keyof T]: T[P] extends (...args: any[]) => infer Return ? () => Return : never;
+    [P in keyof T]: T[P] extends (arg1: any, ...args: infer Rest) => infer Return ? (...args: Rest) => Return : never;
 };
 type NodeMethodsSubset = Pick<typeof Node, SelectedNodeMethods>;
 type TransformedNodeMethods = TransformToInstanceMethods<NodeMethodsSubset>;
