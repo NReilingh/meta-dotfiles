@@ -133,22 +133,25 @@ export class AbsolutePath extends Path {
     return new AbsolutePath(join(this.toString(), suffix.toString()));
   }
 }
-// type NodeMethodName = {
-//     [K in keyof Node]: Node[K] extends Function ? K : never
-// }[keyof Node];
-// type NodeMethodName = keyof Node;
-// type NodeMethodName = [K in keyof Node]: Node[K] extends Function ? K : never
-// Define a type that represents only the keys of `Node` that are methods you want to use
-// type NodeMethodKeys = 'exists' | 'stat' | 'retrieve' | 'content' | 'text' | 'stream' | 'arrayBuffer' | 'json';
-// type NodeMethodKeys = 'exists' | 'stat';
+
+// Crazy TypeScript shit
+// This does type-safe shortcutting of Node's static methods
+// (which take an AbsolutePath as the first param)
+// to be accessible from AbsolutePath.
+
+// Utility type to extract valid method keys from a type T.
 type MethodKeys<T> = {
   [K in keyof T]: T[K] extends Function ? K : never
 }[keyof T];
+// Maybe someday: filter MethodKeys to only include those with AbsolutePath first argument
+// type FirstArgIsAbsolutePath<T> = T extends (arg1: infer A, ...args: any[]) => any ? A extends AbsolutePath ? true : false : false;
+// type MethodKeys<T> = {
+//   [K in keyof T]: FirstArgIsAbsolutePath<T[K]> extends true ? K : never
+// }[keyof T];
 
-// Use the MethodKeys type to generate NodeMethodKeys from Node
-type NodeMethodKeys = MethodKeys<typeof Node>;
-// Explicitly type your array of method names using the `NodeMethodKeys` type
-const methods: NodeMethodKeys[] = [
+// Select and validate subset of methods from Node.
+type NodeStaticMethodKey =  MethodKeys<typeof Node> & ('exists' | 'stat' | 'fooofff');
+const methods: NodeStaticMethodKey[] = [
   'exists',
   'stat',
   // 'retrieve',
@@ -159,51 +162,25 @@ const methods: NodeMethodKeys[] = [
   // 'json',
 ];
 
-type SelectedNodeMethods = 'exists' | 'stat';
-
-const entries = methods.map((method): [NodeMethodKeys, Function] => [
-  method,
-  function (this: AbsolutePath) {
-    return Node[method](this);
-  }
-]);
-Object.assign(
-  AbsolutePath.prototype,
-  Object.fromEntries(entries)
-);
-// Object.assign(
-//   AbsolutePath,
-//   Object.fromEntries([
-//       'exists',
-//       'stat',
-//       'retrieve',
-//       'content',
-//       'text',
-//       'stream',
-//       'arrayBuffer',
-//       'json'
-//     ].map(
-//     (method) => [method, Node[method]]
-//   )));
-//
-// console.dir(AbsolutePath);
-type StaticMethodsToInstance<T, Methods extends keyof T> = {
-  [P in Methods]: T[P] extends (...args: infer Args) => infer Return ? (...args: Args) => Return : never;
-};
-
-// Apply selected Node's methods to AbsolutePath via interface extension
-type NodeInstanceMethods = StaticMethodsToInstance<typeof Node, SelectedNodeMethods>;
-// type TransformToInstanceMethods<T> = {
-//   [P in keyof T]: () => ReturnType<T[P]>;
-// };
+// Get the actual method signatures and transform them
+type NodeStaticMethods = Pick<typeof Node, NodeStaticMethodKey>;
 type OmitFirstArg<Func> = Func extends (arg1: any, ...args: infer Rest) => infer Return ? (...args: Rest) => Return : never;
 type TransformToInstanceMethods<T> = {
-    // [P in keyof T]: T[P] extends (...args: any[]) => infer Return ? () => Return : never;
-    [P in keyof T]: T[P] extends (arg1: any, ...args: infer Rest) => infer Return ? (...args: Rest) => Return : never;
+    [P in keyof T]: OmitFirstArg<T[P]>;
 };
-type NodeMethodsSubset = Pick<typeof Node, SelectedNodeMethods>;
-type TransformedNodeMethods = TransformToInstanceMethods<NodeMethodsSubset>;
+type NodeShortcutMethods = TransformToInstanceMethods<NodeStaticMethods>;
 
-export interface AbsolutePath extends TransformedNodeMethods {}
-const foo = new AbsolutePath('/a/b/c');
-foo.exists();
+Object.assign(
+  AbsolutePath.prototype,
+  Object.fromEntries(
+    methods.map((method): [NodeStaticMethodKey, Function] => [
+      method,
+      function (this: AbsolutePath, ...args: any[]) {
+        return Node[method](this, ...args);
+      }
+    ])
+  )
+);
+
+// Apply types for Node instance method shortcuts.
+export interface AbsolutePath extends NodeShortcutMethods {}
