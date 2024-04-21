@@ -9,7 +9,7 @@
     "dev": "bun test --watch --coverage",
     "compile": "bun build ./src/main.ts --compile --outfile build/bin/mf",
     "test": "bun test --coverage",
-    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters --pretty"
+    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters --pretty --skipLibCheck"
   },
   "peerDependencies": {
     "typescript": "^5.3.3"
