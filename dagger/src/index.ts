@@ -19,24 +19,57 @@ import { dag, Container, Directory, object, func } from "@dagger.io/dagger"
 @object()
 class MetaDotfiles {
   /**
-   * Returns a container that echoes whatever string argument is provided
+   * Returns a container for a Bun build environment
    */
-  @func()
-  containerEcho(stringArg: string): Container {
-    return dag.container().from("alpine:latest").withExec(["echo", stringArg])
+  private buildEnvironment (source: Directory): Container {
+    return dag
+      .container()
+      .from("oven/bun:1.1.4")
+      .withDirectory("/src", source)
+      .withWorkdir("/src")
+      .withExec(["bun", "install"]);
   }
 
   /**
-   * Returns lines that match a pattern in the files of the provided Directory
+   * Returns a container after linting the provided source directory
    */
   @func()
-  async grepDir(directoryArg: Directory, pattern: string): Promise<string> {
-    return dag
-      .container()
-      .from("alpine:latest")
-      .withMountedDirectory("/mnt", directoryArg)
-      .withWorkdir("/mnt")
-      .withExec(["grep", "-R", pattern, "."])
-      .stdout()
+  async lint (source: Directory): Promise<Container> {
+    return this.buildEnvironment(source)
+      .withExec(["bun", "run", "lint"])
+      .sync();
+  }
+
+  /**
+   * Returns a linted container after running tests
+   */
+  @func()
+  async test (source: Directory): Promise<Container> {
+    return this.buildEnvironment(source)
+      .withExec(["bun", "run", "test"])
+      .sync();
+  }
+
+  /**
+   * Returns a container after successfully building the tested binary
+   */
+  @func()
+  async build (source: Directory): Promise<Container> {
+    return this.buildEnvironment(source)
+      .withExec(["bun", "run", "compile"])
+      .sync();
+  }
+
+  /**
+   * Returns the build artifact of all lints and tests passing
+   */
+  @func()
+  async runCi (source: Directory): Promise<Directory> {
+    const [ ,, built] = await Promise.all([
+      this.lint(source),
+      this.test(source),
+      this.build(source)
+    ]);
+    return built.directory('./build/bin');
   }
 }

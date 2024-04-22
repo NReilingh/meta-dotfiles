@@ -1,3 +1,3 @@
-build/bin/mf: src/main.ts
-	mkdir -p build/bin
-	bun run compile
+build/dagger-ci/mf:
+	dagger call run-ci --source=.:source export --path=build/dagger-ci
+
