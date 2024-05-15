@@ -24,7 +24,7 @@ class MetaDotfiles {
   private buildEnvironment (source: Directory): Container {
     return dag
       .container()
-      .from("oven/bun:1.1.4")
+      .from("oven/bun:1.1.8")
       .withDirectory("/src", source)
       .withWorkdir("/src")
       .withExec(["bun", "install"]);
