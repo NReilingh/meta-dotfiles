@@ -1,166 +1,99 @@
-import * as fs from 'node:fs';
+import * as fs from 'node:fs/promises';
 
 import { AbsolutePath, RelativePath } from './Path.ts';
-import { MaybePromiseOf } from './index.ts';
+type NodeType = 'node' | 'file' | 'directory';
 
-type NodeContent = Promise<DirContent> | DirContent | FileContent;
-export type DirContent = Array<Node>;
+export interface FilesystemNode {
+  readonly path: AbsolutePath;
+  readonly kind: NodeType;
+  retrieve (): Promise<File | Directory> | RetrievedContent;
+  readonly content: NodeContent | null;
+  readonly retrieved: boolean;
+}
+
+type RetrievedContent = Promise<DirContent> | FileContent;
+type NodeContent = File | Directory | DirContent | FileContent;
+export type DirContent = Array<FilesystemNode>;
 export type FileContent = {
-  text (): string | Promise<string>,
+  text (): Promise<string>,
   stream (): ReadableStream,
-  arrayBuffer (): ArrayBuffer | Promise<ArrayBuffer>,
-  json (): any | Promise<any>
+  arrayBuffer (): Promise<ArrayBuffer>,
+  json (): Promise<any>
 };
 
-export type DirRetrieveOpts = {
-  sync?: boolean,
-  recursive?: boolean
-  excludeRelative?: RelativePath[],
-  excludeAbsolute?: AbsolutePath[]
-};
-
-export type DirRetrieveParsedOpts = {
-  excludeRelative: {
-    path: RelativePath,
-    name: RelativePath,
-    parentPath: RelativePath,
-  }[],
-  excludeAbsolute: {
-    path: AbsolutePath,
-    name: RelativePath,
-    parentPath: AbsolutePath,
-  }[]
-};
-
-type DirContentMemo = {
-  content: DirContent,
-  query: DirRetrieveParsedOpts
-};
-
-export class Node {
-  protected constructor(path: AbsolutePath, inode?: number) {
+export class PathNode implements FilesystemNode {
+  constructor (path: AbsolutePath, knownType?: Exclude<NodeType, 'node'>) {
     this.path = path;
-    this.inode = inode;
+    this.kind = knownType ?? 'node';
   }
   public readonly path: AbsolutePath;
-  public readonly inode?: number;
+  public kind: NodeType;
+  public retrieved: boolean = false;
+  public content: NodeContent | null = null;
 
-  abstract retrieve (): NodeContent;
-
-  protected static absPathFromDirent (entry: fs.Dirent): AbsolutePath {
-    return new AbsolutePath(entry.parentPath).join(new RelativePath(entry.name));
+  async retrieve (): Promise<File | Directory> {
+    // query the path and return a new file or directory
+    const stats = await fs.stat(this.path.toString());
+    if (stats.isFile()) {
+      this.content = new File(this);
+      this.retrieved = true;
+      return this.content;
+    } else if (stats.isDirectory()) {
+      this.content = new Directory(this);
+      this.retrieved = true;
+      return this.content;
+    } else {
+      return new Promise(() => {});
+    }
   }
-
-  static fromPath (path: AbsolutePath, opts?: { sync: boolean }): MaybePromiseOf<Node | false> {
-    function filter (stats: fs.Stats): Node | false {
-      if (stats.isDirectory()) {
-        return new Directory(path, stats.ino);
-      } else if (stats.isFile()) {
-        return new File(path, stats.ino);
-      } else {
-        throw new Error('Path is neither file nor directory');
-      }
-    }
-    function catchErr (e: any): false {
-      if (e.code === 'ENOENT') {
-        return false;
-      } else {
-        throw e;
-      }
-    }
-
-    if (opts?.sync) {
-      try {
-        const stats = fs.lstatSync(path.toString());
-        return filter(stats);
-      } catch (e: any) {
-        return catchErr(e);
-      }
-    }
-
-    const stats = fs.promises.lstat(path.toString());
-    return stats.then(filter).catch(catchErr);
-  }
-
-  static exists (path: AbsolutePath, opts?: { sync: boolean }): MaybePromiseOf<boolean> {
-    function catchErr (e: any): false {
-      if (e.code === 'ENOENT') {
-        return false;
-      } else {
-        throw e;
-      }
-    }
-    if (opts?.sync) {
-      try {
-        fs.accessSync(path.toString());
-        return true;
-      } catch (e: any) {
-        return catchErr(e);
-      }
-    }
-    const prom = fs.promises.access(path.toString());
-    return prom.then(() => true).catch(catchErr);
-  }
-
-  static stat (path: AbsolutePath): MaybePromiseOf<Node | false> {
-    return Node.fromPath(path);
-  
-  }
-
 }
 
-export class File extends Node {
-  private textContent?: string;
-  private arrayBufferContent?: ArrayBuffer;
-  private jsonContent?: any;
-
-  constructor (path: AbsolutePath, inode?: number) {
-    super(path, inode);
+export class File implements FilesystemNode {
+  constructor (node: PathNode) {
+    this.pathNode = node;
   }
+  private readonly pathNode: PathNode;
+  public readonly kind = 'file';
+  public retrieved: boolean = true;
+
+  public get path () {
+    return this.pathNode.path;
+  }
+
+  public readonly content: FileContent = {
+    text: async () => {
+      return await Bun.file(this.path.toString()).text();
+    },
+    stream: () => {
+      return Bun.file(this.path.toString()).stream();
+    },
+    arrayBuffer: async () => {
+      return await Bun.file(this.path.toString()).arrayBuffer();
+    },
+    json: async () => {
+      return await Bun.file(this.path.toString()).json();
+    }
+  };
+
   retrieve (): FileContent {
-    return {
-      text: () => {
-        if (this.textContent) {
-          return this.textContent;
-        }
-        return Bun.file(this.path.toString()).text().then(e => {
-          this.textContent = e;
-          return e;
-        });
-      },
-      stream: () => {
-        return Bun.file(this.path.toString()).stream();
-      },
-      arrayBuffer: () => {
-        if (this.arrayBufferContent) {
-          return this.arrayBufferContent;
-        }
-        return Bun.file(this.path.toString()).arrayBuffer().then(e => {
-          this.arrayBufferContent = e;
-          return e;
-        });
-      },
-      json: () => {
-        if (this.jsonContent) {
-          return this.jsonContent;
-        }
-        return Bun.file(this.path.toString()).json().then(e => {
-          this.jsonContent = e;
-          return e;
-        });
-      },
-    };
+    return this.content;
   }
 }
 
-export class Directory extends Node {
-  private contentMemo?: DirContentMemo;
-  private contents?: DirContent;
-  private recursiveContents?: DirContent;
-
-  constructor (path: AbsolutePath, inode?: number) {
-    super(path, inode);
+export class Directory implements FilesystemNode {
+  constructor (node: PathNode) {
+    this.pathNode = node;
   }
+  private readonly pathNode: PathNode;
+  public readonly kind = 'directory';
+
+  public get path () {
+    return this.pathNode.path;
+  }
+
+  retrieve (): DirContent {
+  }
+
 
   // Defined as an arrow function so I can use it as a callback without calling `.bind()`.
   private mapNonrecursiveDirContent = (entries: fs.Dirent[]): DirContent => {
@@ -242,4 +175,98 @@ export class Directory extends Node {
     return promise.then(d => this.descendantPathsFilter(d, opts));
   }
 }
+
+
+export type DirRetrieveOpts = {
+  recursive?: boolean
+  excludeRelative?: RelativePath[],
+  excludeAbsolute?: AbsolutePath[]
+};
+
+export type DirRetrieveParsedOpts = {
+  excludeRelative: {
+    path: RelativePath,
+    name: RelativePath,
+    parentPath: RelativePath,
+  }[],
+  excludeAbsolute: {
+    path: AbsolutePath,
+    name: RelativePath,
+    parentPath: AbsolutePath,
+  }[]
+};
+
+export class Node {
+  protected constructor(path: AbsolutePath, inode?: number) {
+    this.path = path;
+    this.inode = inode;
+  }
+  public readonly path: AbsolutePath;
+  public readonly inode?: number;
+
+  retrieve (): NodeContent | undefined {
+  }
+
+  protected static absPathFromDirent (entry: fs.Dirent): AbsolutePath {
+    return new AbsolutePath(entry.parentPath).join(new RelativePath(entry.name));
+  }
+
+  static fromPath (path: AbsolutePath, opts?: { sync: boolean }): MaybePromiseOf<Node | false> {
+    function filter (stats: fs.Stats): Node | false {
+      if (stats.isDirectory()) {
+        return new Directory(path, stats.ino);
+      } else if (stats.isFile()) {
+        return new File(path, stats.ino);
+      } else {
+        throw new Error('Path is neither file nor directory');
+      }
+    }
+    function catchErr (e: any): false {
+      if (e.code === 'ENOENT') {
+        return false;
+      } else {
+        throw e;
+      }
+    }
+
+    if (opts?.sync) {
+      try {
+        const stats = fs.lstatSync(path.toString());
+        return filter(stats);
+      } catch (e: any) {
+        return catchErr(e);
+      }
+    }
+
+    const stats = fs.promises.lstat(path.toString());
+    return stats.then(filter).catch(catchErr);
+  }
+
+  static exists (path: AbsolutePath, opts?: { sync: boolean }): MaybePromiseOf<boolean> {
+    function catchErr (e: any): false {
+      if (e.code === 'ENOENT') {
+        return false;
+      } else {
+        throw e;
+      }
+    }
+    if (opts?.sync) {
+      try {
+        fs.accessSync(path.toString());
+        return true;
+      } catch (e: any) {
+        return catchErr(e);
+      }
+    }
+    const prom = fs.promises.access(path.toString());
+    return prom.then(() => true).catch(catchErr);
+  }
+
+  static stat (path: AbsolutePath): MaybePromiseOf<Node | false> {
+    return Node.fromPath(path);
+  
+  }
+
+}
+
 
