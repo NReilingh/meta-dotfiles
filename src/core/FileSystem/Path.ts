@@ -2,7 +2,6 @@ import { Node } from './Node.ts';
 import { dirname, join, normalize } from 'node:path';
 import common from 'common-path-prefix';
 
-import { MaybePromiseOf } from './index.ts';
 /**
  * Abstract class representing a path, either relative or absolute.
  *
@@ -132,55 +131,13 @@ export class AbsolutePath extends Path {
   join (suffix: RelativePath): AbsolutePath {
     return new AbsolutePath(join(this.toString(), suffix.toString()));
   }
+
+  get bunFile (): ReturnType<typeof Bun.file> {
+    return Bun.file(this.toString());
+  }
+
+  bunWrite (input: Parameters<typeof Bun.write>[1]): ReturnType<typeof Bun.write> {
+    return Bun.write(this.toString(), input);
+  }
 }
 
-// Crazy TypeScript shit
-// This does type-safe shortcutting of Node's static methods
-// (which take an AbsolutePath as the first param)
-// to be accessible from AbsolutePath.
-
-// Utility type to extract valid method keys from a type T.
-type MethodKeys<T> = {
-  [K in keyof T]: T[K] extends Function ? K : never
-}[keyof T];
-// Maybe someday: filter MethodKeys to only include those with AbsolutePath first argument
-// type FirstArgIsAbsolutePath<T> = T extends (arg1: infer A, ...args: any[]) => any ? A extends AbsolutePath ? true : false : false;
-// type MethodKeys<T> = {
-//   [K in keyof T]: FirstArgIsAbsolutePath<T[K]> extends true ? K : never
-// }[keyof T];
-
-// Select and validate subset of methods from Node.
-type NodeStaticMethodKey =  MethodKeys<typeof Node> & ('exists' | 'stat' | 'fooofff');
-const methods: NodeStaticMethodKey[] = [
-  'exists',
-  'stat',
-  // 'retrieve',
-  // 'content',
-  // 'text',
-  // 'stream',
-  // 'arrayBuffer',
-  // 'json',
-];
-
-// Get the actual method signatures and transform them
-type NodeStaticMethods = Pick<typeof Node, NodeStaticMethodKey>;
-type OmitFirstArg<Func> = Func extends (arg1: any, ...args: infer Rest) => infer Return ? (...args: Rest) => Return : never;
-type TransformToInstanceMethods<T> = {
-    [P in keyof T]: OmitFirstArg<T[P]>;
-};
-type NodeShortcutMethods = TransformToInstanceMethods<NodeStaticMethods>;
-
-Object.assign(
-  AbsolutePath.prototype,
-  Object.fromEntries(
-    methods.map((method): [NodeStaticMethodKey, Function] => [
-      method,
-      function (this: AbsolutePath, ...args: any[]) {
-        return Node[method](this, ...args);
-      }
-    ])
-  )
-);
-
-// Apply types for Node instance method shortcuts.
-export interface AbsolutePath extends NodeShortcutMethods {}
