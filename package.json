@@ -18,10 +18,10 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@effect/cli": "^0.36.5",
-    "@effect/platform-bun": "^0.33.5",
+    "@effect/cli": "^0.36.36",
+    "@effect/platform-bun": "^0.36.1",
     "common-path-prefix": "^3.0.0",
-    "effect": "^3.0.3",
-    "xstate": "^5.5.2"
+    "effect": "^3.2.5",
+    "xstate": "^5.13.0"
   }
 }
