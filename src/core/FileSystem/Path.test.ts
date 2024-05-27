@@ -1,6 +1,7 @@
 import { Path, AbsolutePath, RelativePath } from './Path.ts';
+import * as fs from 'node:fs';
 
-import { test, expect, describe } from 'bun:test';
+import { test, expect, describe, beforeAll, afterEach } from 'bun:test';
 
 test('Path.isAbsolute', () => {
   expect(Path.isAbsolute('/')).toBe(true);
@@ -61,6 +62,11 @@ test('RelativePath resolve', () => {
   expect(path.resolve(new AbsolutePath('/x/y/z')).toString()).toBe('/x/y/z/a/b/c');
 });
 
+test('RelativePath absolute resolves to cwd', () => {
+  const path = new RelativePath('a/b/c');
+  expect(path.absolute().toString()).toBe(process.cwd() + '/a/b/c');
+});
+
 test('Complex paths are normalized', () => {
   const relPath = new RelativePath('a/b/../c//d//');
   expect(relPath.toString()).toBe('a/c/d');
@@ -99,16 +105,31 @@ test('AbsolutePath basic operations', () => {
   expect(() => new AbsolutePath('/a/b/c', new AbsolutePath('/x/y'))).toThrow('Invalid arguments');
 });
 
-test('AbsolutePath filesystem operations', () => {
-  const path = new AbsolutePath('/a/b/c');
-  expect(path.exists).toBeInstanceOf(Function);
-  expect(path.stat).toBeInstanceOf(Function);
-  // expect(path.retrieve).toBeInstanceOf(Function);
-  // expect(path.content).toBeInstanceOf(Function);
-  // expect(path.text).toBeInstanceOf(Function);
-  // expect(path.stream).toBeInstanceOf(Function);
-  // expect(path.arrayBuffer).toBeInstanceOf(Function);
-  // expect(path.json).toBeInstanceOf(Function);
+describe('AbsolutePath BunFile abstractions', () => {
+  beforeAll(() => {
+    fs.mkdirSync('build/test/Path', { recursive: true });
+  });
+
+  afterEach(() => {
+    // delete all files or directories in build/test/Path
+    const files = fs.readdirSync('build/test/Path');
+    for (const file of files) {
+      fs.rmSync('build/test/Path/' + file, { recursive: true });
+    }
+  });
+
+  test('BunFile returned for path', () => {
+    const path = new AbsolutePath('/a/b/c');
+    const bunfile = path.bunFile;
+    expect(typeof bunfile).toBe('object');
+    expect(bunfile.json).toBeInstanceOf(Function);
+  });
+  test('bunWrite called with input', () => {
+    const path = new RelativePath('build/test/Path/foo').absolute();
+    const input = { bar: 'baz' };
+    const result = path.bunWrite(input);
+    expect(result).toBeInstanceOf(Promise);
+  });
 });
 
 describe('Path prefixes', () => {

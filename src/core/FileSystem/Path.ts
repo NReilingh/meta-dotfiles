@@ -1,4 +1,4 @@
-import { Node } from './Node.ts';
+import * as fs from 'node:fs/promises';
 import { dirname, join, normalize } from 'node:path';
 import common from 'common-path-prefix';
 
@@ -136,8 +136,12 @@ export class AbsolutePath extends Path {
     return Bun.file(this.toString());
   }
 
-  bunWrite (input: Parameters<typeof Bun.write>[1]): ReturnType<typeof Bun.write> {
+  bunWrite (input: any): ReturnType<typeof Bun.write> {
     return Bun.write(this.toString(), input);
+  }
+
+  readDir (): ReturnType<typeof fs.readdir> {
+    return fs.readdir(this.toString(), { withFileTypes: true });
   }
 }
 
