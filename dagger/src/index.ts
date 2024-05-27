@@ -21,10 +21,20 @@ class MetaDotfiles {
   /**
    * Returns a container for a Bun build environment
    */
-  private buildEnvironment (source: Directory): Container {
+  private async buildEnvironment (source: Directory): Promise<Container> {
+    const toolVersions = await source.file('.tool-versions').contents();
+    // parse string as space-separated key-value pairs delimited by line breaks
+    const versions: {
+      [key: string]: string;
+    }  = toolVersions.split('\n').reduce((acc, line) => {
+      const [key, value] = line.split(' ');
+      acc[key] = value;
+      return acc;
+    }, {});
+
     return dag
       .container()
-      .from("oven/bun:1.1.8")
+      .from(`oven/bun:${versions.bun}`)
       .withDirectory("/src", source)
       .withWorkdir("/src")
       .withExec(["bun", "install"]);
@@ -35,7 +45,7 @@ class MetaDotfiles {
    */
   @func()
   async lint (source: Directory): Promise<Container> {
-    return this.buildEnvironment(source)
+    return (await this.buildEnvironment(source))
       .withExec(["bun", "run", "lint"])
       .sync();
   }
@@ -45,7 +55,7 @@ class MetaDotfiles {
    */
   @func()
   async test (source: Directory): Promise<Container> {
-    return this.buildEnvironment(source)
+    return (await this.buildEnvironment(source))
       .withExec(["bun", "run", "test"])
       .sync();
   }
@@ -55,7 +65,7 @@ class MetaDotfiles {
    */
   @func()
   async build (source: Directory): Promise<Container> {
-    return this.buildEnvironment(source)
+    return (await this.buildEnvironment(source))
       .withExec(["bun", "run", "compile"])
       .sync();
   }
