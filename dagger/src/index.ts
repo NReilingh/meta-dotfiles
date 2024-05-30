@@ -46,8 +46,7 @@ class MetaDotfiles {
   @func()
   async lint (source: Directory): Promise<Container> {
     return (await this.buildEnvironment(source))
-      .withExec(["bun", "run", "lint"])
-      .sync();
+      .withExec(["bun", "run", "lint"]);
   }
 
   /**
@@ -56,8 +55,16 @@ class MetaDotfiles {
   @func()
   async test (source: Directory): Promise<Container> {
     return (await this.buildEnvironment(source))
-      .withExec(["bun", "run", "test"])
-      .sync();
+      .withExec(["bun", "run", "test"]);
+  }
+
+  /**
+   * Returns the output of testing with coverage information
+   */
+  @func()
+  async coverage (source: Directory): Promise<string> {
+    return (await this.test(source))
+      .stderr();
   }
 
   /**
@@ -66,20 +73,27 @@ class MetaDotfiles {
   @func()
   async build (source: Directory): Promise<Container> {
     return (await this.buildEnvironment(source))
-      .withExec(["bun", "run", "compile"])
-      .sync();
+      .withExec(["bun", "run", "compile"]);
   }
 
   /**
    * Returns the build artifact of all lints and tests passing
    */
   @func()
-  async runCi (source: Directory): Promise<Directory> {
-    const [ ,, built] = await Promise.all([
+  async runCi (source: Directory): Promise<string> {
+    const [ , coverage] = await Promise.all([
       this.lint(source),
-      this.test(source),
+      this.coverage(source),
       this.build(source)
     ]);
-    return built.directory('./build/bin');
+    return coverage;
+  }
+
+  /**
+   * Returns a container after bundling the source directory
+   */
+  @func()
+  async release (source: Directory): Promise<Directory> {
+    return (await this.build(source)).directory('./build/bin');
   }
 }
