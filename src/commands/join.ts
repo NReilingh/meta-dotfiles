@@ -16,6 +16,6 @@ export default Command.make('join', {}, () => Console.log("Hello from join comma
 //
 //   alert("Checkout init tag");
 //   alert("Create branch with hostname from init");
-//   alert("Continue as per mf init");
+//   alert("Continue as per dfi init");
 // }
 //

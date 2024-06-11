@@ -8,7 +8,7 @@ export default Command.make('inherit', {}, () => Console.log("Hello from inherit
 // export default function inherit (args: Args) {
 //   const result = confirm("Already joined to an existing repo?");
 //   if (!result) {
-//     alert("Run mf join <target> first");
+//     alert("Run dfi join <target> first");
 //   }
 //
 //   const inheritFrom = args.shift();
@@ -19,5 +19,5 @@ export default Command.make('inherit', {}, () => Console.log("Hello from inherit
 //   }
 //
 //   alert("Create a new branch from init tag for the hostname and merge in the target branch");
-//   alert("Continue as per mf init");
+//   alert("Continue as per dfi init");
 // }

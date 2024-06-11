@@ -9,8 +9,8 @@ import { BunContext, BunRuntime } from '@effect/platform-bun';
 
 const confirm = Options.boolean('confirm').pipe(Options.withAlias('c'));
 const command = Command
-  .make('mf', { confirm }, ({ confirm }) =>
-    Console.log(`Hello this is the mf command and we are${confirm ? '' : ' NOT'} in confirmation mode.`),
+  .make('dfi', { confirm }, ({ confirm }) =>
+    Console.log(`Hello this is the dfi command and we are${confirm ? '' : ' NOT'} in confirmation mode.`),
   );
   // .pipe(Command.withSubcommands([
   //   cmd.add,

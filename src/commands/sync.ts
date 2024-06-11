@@ -38,6 +38,6 @@ export default Command.make('sync', {}, () => Console.log("Hello from sync comma
 //
 //   alert("Commit copies of existing files from the new mapping to the local worktree");
 //
-//   alert("Do mf merge");
+//   alert("Do dfi merge");
 // }
 //

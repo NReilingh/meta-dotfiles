@@ -6,7 +6,7 @@ declare global {
   // deno-lint-ignore no-var
   var USER_HOME: string;
   // deno-lint-ignore no-var
-  var MF_HOME: string;
+  var DFI_HOME: string;
   // deno-lint-ignore no-var
   var LOCAL_STORE: Store;
   // deno-lint-ignore no-var
@@ -20,10 +20,10 @@ export default {
     const home = Bun.env.HOME!;
     globalThis.USER_HOME = home;
 
-    const mf = join(home, '.files');
-    globalThis.MF_HOME = mf;
+    const dfi = join(home, '.files');
+    globalThis.DFI_HOME = dfi;
 
-    const store = join(mf, 'store');
+    const store = join(dfi, 'store');
     globalThis.PRIMARY_REPO = join(store, 'dotfiles');
 
     const local = join(store, 'local');

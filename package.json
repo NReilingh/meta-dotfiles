@@ -9,8 +9,8 @@
   "scripts": {
     "dev": "bun test --watch --coverage",
     "compile": "run-p compile:*",
-    "compile:darwin-arm64": "bun build ./src/main.ts --compile --target=bun-darwin-arm64 --outfile build/bin/mf-darwin-arm64",
-    "compile:darwin-x64": "bun build ./src/main.ts --compile --target=bun-darwin-x64 --outfile build/bin/mf-darwin-x64",
+    "compile:darwin-arm64": "bun build ./src/main.ts --compile --target=bun-darwin-arm64 --outfile build/bin/dfi-darwin-arm64",
+    "compile:darwin-x64": "bun build ./src/main.ts --compile --target=bun-darwin-x64 --outfile build/bin/dfi-darwin-x64",
     "test": "bun test --coverage",
     "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters --pretty --skipLibCheck"
   },
