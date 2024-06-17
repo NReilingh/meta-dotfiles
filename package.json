@@ -21,7 +21,7 @@
     "@effect/cli": "0.36.47",
     "@effect/platform-bun": "0.36.12",
     "common-path-prefix": "3.0.0",
-    "effect": "3.3.3",
+    "effect": "3.3.4",
     "xstate": "5.13.2"
   }
 }
