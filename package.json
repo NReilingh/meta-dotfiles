@@ -3,7 +3,7 @@
   "module": "src/main.ts",
   "type": "module",
   "devDependencies": {
-    "@types/bun": "1.1.4",
+    "@types/bun": "1.1.5",
     "npm-run-all2": "6.2.0"
   },
   "scripts": {
