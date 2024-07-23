@@ -15,7 +15,7 @@
     "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters --pretty --skipLibCheck"
   },
   "peerDependencies": {
-    "typescript": "5.5.3"
+    "typescript": "5.5.4"
   },
   "dependencies": {
     "@effect/cli": "0.38.2",
