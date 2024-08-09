@@ -18,7 +18,7 @@
     "typescript": "5.5.4"
   },
   "dependencies": {
-    "@effect/cli": "0.40.5",
+    "@effect/cli": "0.40.6",
     "@effect/platform-bun": "0.41.5",
     "common-path-prefix": "3.0.0",
     "effect": "3.6.1",
