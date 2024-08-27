@@ -1,5 +1,5 @@
 import { manualStep, promptScript, UserIO, ConsoleIO } from './manual.ts';
-import { Effect, Context, pipe } from 'effect';
+import { Effect, Context } from 'effect';
 
 import { test, expect, describe, mock } from 'bun:test';
 
@@ -77,9 +77,9 @@ describe("manualStep", () => {
       script: [''],
       outputThunk: outputMock,
     });
-    const effect = step('helloInputTest');
-    const runnable = effect.pipe(Effect.provideService(UserIO, makeMockIO()));
-    await Effect.runPromise(runnable);
+    const program = step('helloInputTest')
+      .pipe(Effect.provideService(UserIO, makeMockIO()));
+    await Effect.runPromise(program);
     expect(outputMock).toHaveBeenCalledWith('helloInputTest', '');
   });
 
@@ -88,10 +88,10 @@ describe("manualStep", () => {
       script: ["What is your favorite color? "],
       outputThunk: () => null,
     });
-    const effect = step(null);
     const writeMock = mock(() => Effect.sync(() => {}));
-    const runnable = effect.pipe(Effect.provideService(UserIO, makeMockIO(writeMock)));
-    await Effect.runPromise(runnable);
+    const program = step(null)
+      .pipe(Effect.provideService(UserIO, makeMockIO(writeMock)));
+    await Effect.runPromise(program);
     expect(writeMock).toHaveBeenCalledWith("What is your favorite color? ");
   });
 
@@ -101,9 +101,9 @@ describe("manualStep", () => {
       script: ["What is your favorite color? "],
       outputThunk: outputMock,
     });
-    const effect = step(null);
-    const runnable = effect.pipe(Effect.provideService(UserIO, makeMockIO(undefined, "blue")));
-    await Effect.runPromise(runnable);
+    const program = step(null)
+      .pipe(Effect.provideService(UserIO, makeMockIO(undefined, "blue")));
+    await Effect.runPromise(program);
     expect(outputMock).toHaveBeenCalledWith(null, "blue");
   });
 
@@ -112,9 +112,9 @@ describe("manualStep", () => {
       script: [''],
       outputThunk: () => "fooBar",
     });
-    const effect = step(null);
-    const runnable = effect.pipe(Effect.provideService(UserIO, makeMockIO()));
-    const result = await Effect.runPromise(runnable);
+    const program = step(null)
+      .pipe(Effect.provideService(UserIO, makeMockIO()));
+    const result = await Effect.runPromise(program);
     expect(result).toBe("fooBar");
   });
 });
