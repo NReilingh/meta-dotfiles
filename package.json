@@ -4,7 +4,7 @@
   "type": "module",
   "devDependencies": {
     "@types/bun": "1.1.11",
-    "npm-run-all2": "6.2.3"
+    "npm-run-all2": "6.2.4"
   },
   "scripts": {
     "dev": "bun test --watch --coverage",
