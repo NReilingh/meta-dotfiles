@@ -55,4 +55,7 @@ but using Dagger for platform-agnosticity.
 
 RenovateBot with automerge on passing tests
 is used for keeping dependencies current.
-Renovate
+Renovate will apply updates to the `renovate` branch
+to keep `master` from getting too noisy.
+After merging `renovate`'s HEAD to `master`,
+this HEAD should be fast-forwarded to the merge commit.
