@@ -1,4 +1,5 @@
 {
   "extends": ["config:recommended"],
+  "baseBranches": ["renovate"],
   "automerge": true
 }

@@ -10,8 +10,9 @@ It is designed around these principles:
   * No symlinks between deployment location and storage location for managed files.
 
 * Visiblity
-  * All state is stored in a git repository on (e.g.) GitHub where the root of
-    the repo is analogous to a user home directory.
+  * All state is stored in a git repository on (e.g.) GitHub.
+  * The repo is organized so that it presents as a conventional "dotfiles" repo,
+    where the root of the repo is analogous to the user's home directory.
   * Each machine has a branch which tracks its own history; the repo's master
     branch represents a canonical line of history.
 
@@ -38,3 +39,20 @@ It is designed around these principles:
 a new machine that replaces an old machine with a different hostname.
 
 `dfi merge` - Resume a sync that requires conflict resolution.
+
+## Development
+
+This initial implementation is written in effect-cli for the Bun JavaScript runtime.
+Bun's JavaScriptCore runtime is said to boot faster than V8,
+making it a better fit for command-line tools.
+
+I find Effect.ts compelling, and am also using this project
+as an opportunity to learn TypeScript, Effect.ts, and effect-cli.
+
+Development goals are 100% test coverage and a complete CI/CD implementation.
+We are of course leveraging GitHub Actions,
+but using Dagger for platform-agnosticity.
+
+RenovateBot with automerge on passing tests
+is used for keeping dependencies current.
+Renovate
