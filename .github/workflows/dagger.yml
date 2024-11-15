@@ -1,4 +1,4 @@
-name: dagger
+name: Dagger CI
 on:
   push:
 
