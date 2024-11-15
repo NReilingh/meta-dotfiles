@@ -13,6 +13,7 @@ jobs:
       - name: Fetch branches
         run: |
           git fetch origin renovatebot:renovatebot
+          git log renovatebot -1 --format=%H
 
       # Step 3: Check if renovatebot can be fast-forwarded to master
       - name: Check fast-forwardability
@@ -24,8 +25,8 @@ jobs:
             echo "can_fast_forward=false" >> $GITHUB_ENV
           fi
 
-      # Step 4: Fast-forward foo to bar if possible
-      - name: Fast-forward foo to bar
+      # Step 4: Fast-forward renovatebot to master if possible
+      - name: Fast-forward renovatebot
         if: env.can_fast_forward == 'true'
         run: |
           git checkout renovatebot
@@ -36,7 +37,7 @@ jobs:
       - name: Output result
         run: |
           if [ "${{ env.can_fast_forward }}" == "true" ]; then
-            echo "Branch 'foo' was successfully fast-forwarded to 'bar'."
+            echo "Branch 'renovatebot' was successfully fast-forwarded to 'master'."
           else
-            echo "Branch 'foo' cannot be fast-forwarded to 'bar'."
+            echo "Branch 'renovatebot' cannot be fast-forwarded to 'master'."
           fi
