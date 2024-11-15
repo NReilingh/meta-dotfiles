@@ -1,0 +1,43 @@
+name: Sync Renovatebot Branch
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  sync_renovatebot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Fetch branches
+        run: |
+          git fetch origin master:master
+          git fetch origin renovatebot:renovatebot
+
+      # Step 3: Check if renovatebot can be fast-forwarded to master
+      - name: Check fast-forwardability
+        id: check_fast_forward
+        run: |
+          if git merge-base --is-ancestor master renovatebot; then
+            echo "can_fast_forward=true" >> $GITHUB_ENV
+          else
+            echo "can_fast_forward=false" >> $GITHUB_ENV
+          fi
+
+      # Step 4: Fast-forward foo to bar if possible
+      - name: Fast-forward foo to bar
+        if: env.can_fast_forward == 'true'
+        run: |
+          git checkout renovatebot
+          git merge --ff-only master
+          git push origin renovatebot
+
+      # Step 5: Output status
+      - name: Output result
+        run: |
+          if [ "${{ env.can_fast_forward }}" == "true" ]; then
+            echo "Branch 'foo' was successfully fast-forwarded to 'bar'."
+          else
+            echo "Branch 'foo' cannot be fast-forwarded to 'bar'."
+          fi
