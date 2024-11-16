@@ -35,6 +35,11 @@ class MetaDotfiles {
       .withExec(["bun", "install"]);
   }
 
+  @func()
+  async debug (source: Directory): Promise<Container> {
+    return (await this.buildEnvironment(source));
+  }
+
   /**
    * Returns a container after linting the provided source directory
    */
@@ -69,6 +74,24 @@ class MetaDotfiles {
   async build (source: Directory): Promise<Container> {
     return (await this.buildEnvironment(source))
       .withExec(["bun", "run", "compile"]);
+  }
+
+  /**
+   * Returns a container after running integration tests
+   */
+  @func()
+  async integrationTest (source: Directory): Promise<Container> {
+    return (await this.build(source))
+      .withExec(["bun", "run", "test-ci:e2e"]);
+  }
+
+  /**
+   * Returns the integration test output
+   */
+  @func()
+  async integrationTestOutput (source: Directory): Promise<string> {
+    return (await this.integrationTest(source))
+      .stderr();
   }
 
   /**
