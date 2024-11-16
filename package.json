@@ -8,6 +8,8 @@
   },
   "scripts": {
     "dev": "bun test --watch --coverage",
+    "dev-e2e": "bun test --watch ./test/integration.ts",
+    "compile-dev": "bun build ./src/main.ts --compile --outfile build/bin/dfi",
     "compile": "run-p compile:*",
     "compile:darwin-arm64": "bun build ./src/main.ts --compile --target=bun-darwin-arm64 --outfile build/bin/dfi-darwin-arm64",
     "compile:darwin-x64": "bun build ./src/main.ts --compile --target=bun-darwin-x64 --outfile build/bin/dfi-darwin-x64",
