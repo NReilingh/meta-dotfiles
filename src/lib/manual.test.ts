@@ -1,5 +1,5 @@
 import { manualStep, promptScript, UserIO, ConsoleIO } from './manual.ts';
-import { Effect, Context } from 'effect';
+import { Effect, Context, pipe } from 'effect';
 
 import { test, expect, describe, mock } from 'bun:test';
 
@@ -116,6 +116,28 @@ describe("manualStep", () => {
       .pipe(Effect.provideService(UserIO, makeMockIO()));
     const result = await Effect.runPromise(program);
     expect(result).toBe("fooBar");
+  });
+
+  test("full send", async () => {
+    const program = pipe(
+      Effect.succeed(42),
+      Effect.flatMap(manualStep({
+        script: promptScript`What color is this number? ${input => input.toString()}`,
+        outputThunk: (input, value) => ({
+          color: value,
+          number: input
+        }),
+      })),
+    );
+
+    const io = makeMockIO(undefined, "blue");
+    const result = await Effect.runPromise(
+      program.pipe(Effect.provideService(UserIO, io))
+    );
+    expect(result).toEqual({
+      color: "blue",
+      number: 42,
+    });
   });
 });
 
