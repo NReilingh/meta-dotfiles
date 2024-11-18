@@ -8,12 +8,14 @@
   },
   "scripts": {
     "dev": "bun test --watch --coverage",
-    "dev-e2e": "bun test --watch ./integration/dev.ts",
+    "dev-e2e": "bun test --watch ./src/integration/dev.ts",
     "compile": "run-p compile:*",
     "compile:local": "bun build ./src/main.ts --compile --outfile build/bin/dfi",
     "compile:darwin-arm64": "bun build ./src/main.ts --compile --target=bun-darwin-arm64 --outfile build/bin/dfi-darwin-arm64",
     "compile:darwin-x64": "bun build ./src/main.ts --compile --target=bun-darwin-x64 --outfile build/bin/dfi-darwin-x64",
     "test": "bun test --coverage",
+    "test:e2e": "bun test ./src/integration/dev.ts",
+    "test-ci:e2e": "bun test ./src/integration/ci.ts",
     "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters --pretty --skipLibCheck"
   },
   "peerDependencies": {
@@ -21,6 +23,7 @@
   },
   "dependencies": {
     "@effect/cli": "0.48.24",
+    "@effect/platform": "0.69.24",
     "@effect/platform-bun": "0.49.26",
     "common-path-prefix": "3.0.0",
     "effect": "3.10.15",

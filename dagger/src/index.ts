@@ -72,14 +72,23 @@ class MetaDotfiles {
   }
 
   /**
+   * Returns a container after running integration tests
+   */
+  @func()
+  async integrationTest (source: Directory): Promise<Container> {
+    return (await this.build(source))
+      .withExec(["bun", "run", "test-ci:e2e"]);
+  }
+
+  /**
    * Returns the build artifact of all lints and tests passing
    */
   @func()
   async runCi (source: Directory): Promise<string> {
     const [ , coverage] = await Promise.all([
-      this.lint(source),
+      (await this.lint(source)).sync(),
       this.coverage(source),
-      this.build(source)
+      (await this.integrationTest(source)).sync()
     ]);
     return coverage;
   }
