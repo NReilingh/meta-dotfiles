@@ -35,11 +35,6 @@ class MetaDotfiles {
       .withExec(["bun", "install"]);
   }
 
-  @func()
-  async debug (source: Directory): Promise<Container> {
-    return (await this.buildEnvironment(source));
-  }
-
   /**
    * Returns a container after linting the provided source directory
    */
@@ -86,23 +81,14 @@ class MetaDotfiles {
   }
 
   /**
-   * Returns the integration test output
-   */
-  @func()
-  async integrationTestOutput (source: Directory): Promise<string> {
-    return (await this.integrationTest(source))
-      .stderr();
-  }
-
-  /**
    * Returns the build artifact of all lints and tests passing
    */
   @func()
   async runCi (source: Directory): Promise<string> {
     const [ , coverage] = await Promise.all([
-      this.lint(source),
+      (await this.lint(source)).sync(),
       this.coverage(source),
-      this.build(source)
+      (await this.integrationTest(source)).sync()
     ]);
     return coverage;
   }
