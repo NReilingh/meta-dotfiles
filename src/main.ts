@@ -2,10 +2,26 @@
 // import * as cmd from './commands/mod.ts';
 
 import { Command, Options } from '@effect/cli';
-import { Console, Effect, Boolean } from 'effect';
+import { Console, Effect, Boolean, pipe } from 'effect';
 import { BunContext, BunRuntime } from '@effect/platform-bun';
 
 // config.setup();
+
+import { manualStep, promptScript, ConsoleIO, UserIO } from './lib/manual.ts';
+
+const testPrompt = Command.make('prompt', {}, () =>
+  pipe(
+    Effect.succeed(42),
+    Effect.flatMap(manualStep({
+      script: promptScript`What color is this number? ${input => input.toString()}`,
+      outputThunk: (input, value) => ({
+        color: value,
+        number: input
+      }),
+    })),
+    Effect.flatMap((a) => Console.log(a)),
+  )
+);
 
 const helloWorld = Command.make('hello', {}, () => Console.log('Hello, World!'));
 
@@ -18,6 +34,7 @@ const command = Command
     }))
   .pipe(Command.withSubcommands([
     helloWorld,
+    testPrompt,
     // cmd.add,
     // cmd.init,
     // cmd.inherit,
@@ -33,6 +50,7 @@ const cli = Command.run(command, {
 
 Effect.suspend(() => cli(Bun.argv)).pipe(
   Effect.provide(BunContext.layer),
+  Effect.provideService(UserIO, ConsoleIO),
   BunRuntime.runMain
 );
 

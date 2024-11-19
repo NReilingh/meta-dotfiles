@@ -10,3 +10,8 @@ build/bin/dfi:
 test:
 	dagger call coverage --source=.:source
 
+.PHONY: ci
+
+ci:
+	dagger call run-ci --source=.:source
+

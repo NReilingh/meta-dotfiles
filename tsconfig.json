@@ -19,5 +19,11 @@
       "bun-types" // add Bun global
     ]
   },
-  "files": ["./src/main.ts"],
+  "files": [
+    "./src/main.ts",
+    "./src/lib/manual.ts",
+    "./src/lib/manual.test.ts",
+  ],
+  // Get here eventually instead of "files":
+  // "include": ["src/**/*.ts"],
 }
