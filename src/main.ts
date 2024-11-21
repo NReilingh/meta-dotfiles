@@ -48,7 +48,7 @@ const cli = Command.run(command, {
   version: '0.0.1',
 });
 
-Effect.suspend(() => cli(Bun.argv)).pipe(
+cli(Bun.argv).pipe(
   Effect.provide(BunContext.layer),
   Effect.provideService(UserIO, ConsoleIO),
   BunRuntime.runMain

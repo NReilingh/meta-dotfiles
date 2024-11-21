@@ -12,7 +12,7 @@
 import { dag, Container, Directory, object, func } from "@dagger.io/dagger"
 
 @object()
-class MetaDotfiles {
+export class MetaDotfiles {
   /**
    * Returns a container for a Bun build environment
    */
