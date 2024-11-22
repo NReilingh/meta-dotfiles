@@ -13,6 +13,7 @@
     "compile:local": "bun build ./src/main.ts --compile --outfile build/bin/dfi",
     "compile:darwin-arm64": "bun build ./src/main.ts --compile --target=bun-darwin-arm64 --outfile build/bin/dfi-darwin-arm64",
     "compile:darwin-x64": "bun build ./src/main.ts --compile --target=bun-darwin-x64 --outfile build/bin/dfi-darwin-x64",
+    "start": "run-p -l 'compile:local --watch' 'lint --watch --preserveWatchOutput'",
     "test": "bun test --coverage",
     "test:e2e": "bun test ./src/integration/dev.ts",
     "test-ci:e2e": "bun test ./src/integration/ci.ts",

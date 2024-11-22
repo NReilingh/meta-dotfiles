@@ -1,24 +1,29 @@
 // import config from './config.ts';
 // import * as cmd from './commands/mod.ts';
 
-import { Command, Options } from '@effect/cli';
+import { Command, Options, Prompt } from '@effect/cli';
 import { Console, Effect, Boolean, pipe } from 'effect';
 import { BunContext, BunRuntime } from '@effect/platform-bun';
 
 // config.setup();
 
-import { manualStep, promptScript, ConsoleIO, UserIO } from './lib/manual.ts';
+// import { manualStep, promptScript, ConsoleIO, UserIO } from './lib/manual.ts';
 
 const testPrompt = Command.make('prompt', {}, () =>
   pipe(
     Effect.succeed(42),
-    Effect.flatMap(manualStep({
-      script: promptScript`What color is this number? ${input => input.toString()}`,
-      outputThunk: (input, value) => ({
-        color: value,
-        number: input
-      }),
-    })),
+    Effect.flatMap((i) =>
+      pipe(
+        Prompt.text({
+          message: `What color is this number? ${i}`,
+          default: 'blue',
+        }),
+        Effect.map(p => ({
+          color: p,
+          number: i,
+        })),
+      )
+    ),
     Effect.flatMap((a) => Console.log(a)),
   )
 );
@@ -50,7 +55,7 @@ const cli = Command.run(command, {
 
 cli(Bun.argv).pipe(
   Effect.provide(BunContext.layer),
-  Effect.provideService(UserIO, ConsoleIO),
+  // Effect.provideService(UserIO, ConsoleIO),
   BunRuntime.runMain
 );
 
