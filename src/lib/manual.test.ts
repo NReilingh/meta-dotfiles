@@ -1,37 +1,25 @@
-import { manualStep, promptScript, UserIO, ConsoleIO } from './manual.ts';
+import { manualStep, UserPrompt, EffectPrompt, ConsolePrompt, TerminalPrompt } from './manual.ts';
 import { Effect, Context, pipe } from 'effect';
 
 import { test, expect, describe, mock } from 'bun:test';
 
-function makeMockIO (writeMock?: (x: any) => any, readString?: string): Context.Tag.Service<UserIO> {
+function makeMockPrompt (writeMock?: (x: any) => Effect.Effect<string>, readString?: string): Context.Tag.Service<UserPrompt> {
   return {
-    write: writeMock ?? (() => Effect.sync(() => {})),
-    read: Effect.succeed(readString ?? ""),
+    prompt: writeMock ?? (() => Effect.succeed(readString ?? "")),
   };
 }
 
-test("promptScript returns interleaved array", () => {
-  function foo () {
-    return "bar";
-  }
-  const result = promptScript`
-${foo} is the answer to life, ${"the universe,"} and everything.`
-
-  expect(result).toEqual([
-    "\n",
-    foo,
-    " is the answer to life, ",
-    "the universe,",
-    " and everything."
-  ]);
-});
-
-describe("ConsoleIO service implementation", () => {
+describe("ConsolePrompt service implementation", () => {
   test("write calls console.log", async () => {
     const consoleMock = mock();
-    globalThis.console.log = consoleMock;
+    globalThis.console = {
+      log: consoleMock,
+      async *[Symbol.asyncIterator] () {
+        yield "fooYield";
+      },
+    } as unknown as Console;
 
-    await Effect.runPromise(ConsoleIO.write("hello world"));
+    await Effect.runPromise(ConsolePrompt.prompt("hello world"));
     expect(consoleMock).toHaveBeenCalledWith("hello world");
   });
 

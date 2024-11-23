@@ -1,29 +1,46 @@
-import { pipe, Effect, Context } from 'effect';
-
-type Placeholder<TInput> = string | ((input: TInput) => string);
-type PromptScript<TInput> = Array<Placeholder<TInput>>;
+import { Effect, Context, Layer, pipe } from 'effect';
+import { Prompt } from '@effect/cli';
+import { Terminal, QuitException } from '@effect/platform/Terminal';
+import type { PlatformError } from '@effect/platform/Error';
 
 /**
- * A service abstraction for interactive user I/O.
+ * A service abstraction for prompting the user for input.
  *
- * The `@effect/platform` module does not yet have an IO abstraction.
- * It may have in the future, at which point this can be deprecated.
+ * Intended to support interactive console usage as well as
+ * headless circumstances where the user may be prompted via Slack
+ * or another web frontend.
  */
-export class UserIO extends Context.Tag("UserIOService")<
-  UserIO,
+export class UserPrompt extends Context.Tag("UserPromptService")<
+  UserPrompt,
   {
-    readonly write: (x: any) => Effect.Effect<void>,
-    readonly read: Effect.Effect<string>,
+    readonly prompt: (query: string) => Effect.Effect<string, never | QuitException | PlatformError>,
   }
 >() {}
 
 /**
- * An implementation of UserIO that provides for
- * reading and writing from the console.
+ * An implementation of UserPrompt using the `@effect/cli/Prompt` library.
  */
-export const ConsoleIO: Context.Tag.Service<UserIO> = {
-  write: x => Effect.sync(() => console.log(x)),
-  read: Effect.promise<string>(async () => {
+export const EffectPromptService: Context.Tag.Service<UserPrompt> = {
+  prompt: (query) => Prompt.text({ message: query }),
+};
+
+export const EffectPromptLayer = Layer.effect(
+  UserPrompt,
+  Terminal.pipe(
+    Effect.flatMap(t => Layer.provide()
+    Effect.map(t => ({
+      prompt: (query: string) => Prompt.text({ message: query })
+    })),
+  )
+);
+
+/**
+ * An implementation of UserPrompt using dumb console IO.
+ */
+export const ConsolePrompt: Context.Tag.Service<UserPrompt> = {
+  prompt: query => Effect.promise<string>(async () => {
+    console.log(query);
+
     const iterator = console[Symbol.asyncIterator]();
     const { value, done } = await iterator.next();
     await iterator.return?.();
@@ -35,59 +52,51 @@ export const ConsoleIO: Context.Tag.Service<UserIO> = {
 };
 
 /**
+ * An implementation of UserPrompt using Effect's Terminal interface.
+ */
+export const TerminalPrompt = Layer.effect(
+  UserPrompt,
+  Terminal.pipe(
+    Effect.map(t => ({
+      prompt: (query: string) => Effect.zipRight(t.display(query), t.readLine),
+    })),
+  )
+);
+
+/**
  * An effectful function that can be passed to `Effect.flatMap`
  * to prompt the operator to perform a manual step.
+ *
+ * This should be used differently from `@ffect/cli/Prompt` in that
+ * a `manualStep` should eventually be replaced with an automated solution.
+ *
+ * `manualStep`'s implementation may end up using Prompt
+ * in interactive CLI contexts,
+ * but could also be a web frontend or Slack message.
+ *
+ * Prompt should still be used when the user's participation is always desired.
+ * However, ideally this will be accomplished using Args/Opts with Prompt fallbacks.
  *
  * @example
  * const program = pipe(
  *   Effect.succeed(42),
- *   Effect.flatMap(manualStep({
- *     script: promptScript`What color is this number? ${input => input.toString()}`,
- *     outputThunk: (input, value) => ({
+ *   Effect.flatMap((input) => manualStep({
+ *     script: `What color is this number? ${input}`,
+ *     outputThunk: (value) => ({
  *       color: value,
  *       number: input
  *     }),
  *   })),
  * );
  */
-export function manualStep<TInput, TOutput> (
+export function manualStep<TOutput> (
   { script, outputThunk }: {
-    script: PromptScript<TInput>,
-    outputThunk: (input: TInput, value: string) => TOutput,
+    script: string,
+    outputThunk: (value: string) => TOutput,
   }
-): (input: TInput) => Effect.Effect<TOutput, unknown, UserIO> {
-  return (input) => UserIO.pipe(
-    Effect.flatMap(io => pipe(
-      Effect.suspend(() => {
-        const promptMessage =
-          script.map(line => typeof line === "function" ? line(input) : line).join("");
-
-        return io.write(promptMessage);
-      }),
-      Effect.flatMap(() => io.read),
-      Effect.map(value => outputThunk(input, value)),
-    )),
-  );
-}
-
-/**
- * Template literal tag function for creating a prompt script.
- *
- * Interpolations are simply interleaved so that the resulting
- * value conforms to `PromptScript<TInput>`.
- *
- * Expected usage is that interpolated values can be string expressions,
- * but can also be functions that take the input value and return a string.
- * @example
- * const script = promptScript`
- * What letter comes after ${input => input.letter}?`;
- */
-export function promptScript<TInput> (
-  strings: TemplateStringsArray,
-  ...args: PromptScript<TInput>
-): PromptScript<TInput> {
-  return args.reduce(
-    (a, c, i) => a.concat([c, strings[i+1]]),
-    Array<Placeholder<TInput>>(strings[0])
+) {
+  return UserPrompt.pipe(
+    Effect.flatMap(({ prompt }) => prompt(script)),
+    Effect.map(value => outputThunk(value)),
   );
 }
