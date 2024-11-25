@@ -1,16 +1,25 @@
-import { FileSystem, Terminal } from "@effect/platform"
-import { BunContext } from "@effect/platform-bun"
-import { Console, Layer, Context } from "effect"
+import { FileSystem, Terminal } from "@effect/platform";
+import { BunContext } from "@effect/platform-bun";
+import { Console, Layer, Context } from "effect";
 import { Prompt } from '@effect/cli';
-import * as Effect from "effect/Effect"
+import * as Effect from "effect/Effect";
+import { QuitException } from '@effect/platform/Terminal';
 
-export class Cache extends Effect.Service<Cache>()("app/Cache", {
+/**
+ * A service abstraction for prompting the user for input.
+ */
+export class UserPrompt extends Context.Tag("app/Cache")<
+  UserPrompt,
+  {
+    readonly prompt: (query: string) => Effect.Effect<string, never | QuitException>,
+  }
+>() {}
+
+export class Cache extends Effect.Service<UserPrompt>()("app/Cache", {
   // define how to create the service
   // You can also use the "scoped", "sync" or "succeed" keys to create your service
   effect: Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem
-    const lookup = (key: string) => fs.readFileString(`src/lib/cache/${key}`)
-    return { lookup,
+    return {
     prompt: (query: string) => Prompt.text({ message: query }),
     }
   }),
@@ -28,7 +37,7 @@ export class Cache extends Effect.Service<Cache>()("app/Cache", {
 // const layerNoDeps: Layer.Layer<Cache, never, FileSystem.FileSystem> =
 //   Cache.DefaultWithoutDependencies
 
-const program = Cache.pipe(
+const program = UserPrompt.pipe(
   Effect.flatMap(cache => cache.prompt("hwllo")),
   Effect.flatMap(Console.log)
 );
@@ -50,9 +59,6 @@ class Random extends Context.Tag("Random")<
     nextIntBetween: (min, max) => Effect.succeed(min + max),
   });
 }
-
-const foo = Effect.serviceMembers(Random);
-const bar = Effect.serviceMembers(Cache);
 
 //
 const runnable = program.pipe(

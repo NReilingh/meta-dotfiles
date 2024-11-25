@@ -1,7 +1,7 @@
 import { Effect, Context, Layer, pipe } from 'effect';
 import { Prompt } from '@effect/cli';
 import { Terminal, QuitException } from '@effect/platform/Terminal';
-import type { PlatformError } from '@effect/platform/Error';
+import { Error } from '@effect/platform';
 
 /**
  * A service abstraction for prompting the user for input.
@@ -13,26 +13,19 @@ import type { PlatformError } from '@effect/platform/Error';
 export class UserPrompt extends Context.Tag("UserPromptService")<
   UserPrompt,
   {
-    readonly prompt: (query: string) => Effect.Effect<string, never | QuitException | PlatformError>,
+    readonly prompt: (query: string) => Effect.Effect<string, never | QuitException | Error.PlatformError>,
   }
 >() {}
 
 /**
  * An implementation of UserPrompt using the `@effect/cli/Prompt` library.
  */
-export const EffectPromptService: Context.Tag.Service<UserPrompt> = {
-  prompt: (query) => Prompt.text({ message: query }),
-};
-
-export const EffectPromptLayer = Layer.effect(
-  UserPrompt,
-  Terminal.pipe(
-    Effect.flatMap(t => Layer.provide()
-    Effect.map(t => ({
-      prompt: (query: string) => Prompt.text({ message: query })
-    })),
-  )
-);
+export const EffectPrompt = Layer.effect(UserPrompt, Terminal.pipe(
+  Effect.map(t => ({
+    prompt: (query: string) => Prompt.text({ message: query })
+      .pipe(Effect.provideService(Terminal, t)),
+  })),
+));
 
 /**
  * An implementation of UserPrompt using dumb console IO.
