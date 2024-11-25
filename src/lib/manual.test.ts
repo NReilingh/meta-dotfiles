@@ -1,9 +1,16 @@
-import { manualStep, UserPrompt, EffectPrompt, ConsolePrompt, TerminalPrompt } from './manual.ts';
-import { Effect, Context, pipe } from 'effect';
-
+import {
+  manualStep,
+  UserPrompt,
+  EffectPrompt,
+  ConsolePrompt,
+  TerminalPrompt,
+} from './manual.ts';
+import { Effect, Context, Option, pipe } from 'effect';
 import { test, expect, describe, mock } from 'bun:test';
 
-function makeMockPrompt (writeMock?: (x: any) => Effect.Effect<string>, readString?: string): Context.Tag.Service<UserPrompt> {
+function makeMockPrompt (
+  writeMock?: (x: any) => Effect.Effect<string>, readString?: string
+): Context.Tag.Service<UserPrompt> {
   return UserPrompt.of({
     prompt: writeMock ?? (() => Effect.succeed(readString ?? "")),
   });
@@ -61,18 +68,72 @@ describe("manualStep", () => {
   });
 });
 
+import { Terminal, UserInput } from '@effect/platform/Terminal';
+
+function makeMockTerminal (
+  displayMock?: () => Effect.Effect<void>
+): Context.Tag.Service<typeof Terminal> {
+  return Terminal.of({
+    columns: Effect.succeed(80),
+    readInput: Effect.succeed(<UserInput>{
+      input: Option.none(),
+      key: {
+        name: 'enter',
+        ctrl: false,
+        meta: false,
+        shift: false,
+      },
+    }),
+    readLine: Effect.succeed('a'),
+    display: displayMock ?? (() => Effect.succeed(undefined)),
+  });
+}
+
+describe("EffectPrompt service implementation", () => {
+  test("prompt displays message", async () => {
+    const displayMock = mock(() => Effect.succeed(undefined));
+    const program = UserPrompt.pipe(
+      Effect.flatMap(p => p.prompt("What is your favorite color?")),
+      Effect.provide(EffectPrompt),
+      Effect.provideService(Terminal, makeMockTerminal(displayMock))
+    );
+    await Effect.runPromise(program);
+    expect(displayMock.mock.calls.join('')).toContain("What is your favorite color?");
+  });
+});
+
+describe("TerminalPrompt service implementation", () => {
+  test("prompt displays message", async () => {
+    const displayMock = mock(() => Effect.succeed(undefined));
+    const program = UserPrompt.pipe(
+      Effect.flatMap(p => p.prompt("Append space here>")),
+      Effect.provide(TerminalPrompt),
+      Effect.provideService(Terminal, makeMockTerminal(displayMock))
+    );
+    await Effect.runPromise(program);
+    expect(displayMock).toHaveBeenCalledWith("Append space here> ");
+  });
+});
+
 describe("ConsolePrompt service implementation", () => {
   function makeMockConsole (
     logMock?: (x: any) => void,
-    readString?: string
+    readOpts?: {
+      readString?: string,
+      empty?: boolean,
+    }
   ): void {
     globalThis.console = {
       log: logMock ?? (() => {}),
       async *[Symbol.asyncIterator] () {
-        yield readString ?? "";
+        if (readOpts?.empty) {
+          return;
+        }
+        yield readOpts?.readString ?? "";
       },
     } as unknown as Console;
   }
+
   test("write calls console.log", async () => {
     const consoleMock = mock();
     makeMockConsole(consoleMock);
@@ -81,15 +142,22 @@ describe("ConsolePrompt service implementation", () => {
     expect(consoleMock).toHaveBeenCalledWith("hello world");
   });
 
-  test("read returns console input", async () => {
-    makeMockConsole(undefined, "fooYield");
+  test("read returns empty string with no console input", async () => {
+    makeMockConsole(undefined, { empty: true });
 
-    const result = await Effect.runPromise(ConsolePrompt.prompt(''));
+    const result = await Effect.runPromise(ConsolePrompt.prompt("Hello"));
+    expect(result).toBe('');
+  });
+
+  test("read returns console input", async () => {
+    makeMockConsole(undefined, { readString: "fooYield" });
+
+    const result = await Effect.runPromise(ConsolePrompt.prompt("Hello"));
     expect(result).toBe("fooYield");
 
     makeMockConsole();
 
-    const secondResult = await Effect.runPromise(ConsolePrompt.prompt(''));
+    const secondResult = await Effect.runPromise(ConsolePrompt.prompt("Hello"));
     expect(secondResult).toBe('');
   });
 });

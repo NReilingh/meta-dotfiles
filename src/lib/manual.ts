@@ -73,6 +73,18 @@ export const EffectPrompt = Layer.effect(UserPrompt, Terminal.pipe(
 ));
 
 /**
+ * An implementation of UserPrompt using Effect's Terminal interface.
+ */
+export const TerminalPrompt = Layer.effect(
+  UserPrompt,
+  Terminal.pipe(
+    Effect.map(t => ({
+      prompt: (query: string) => Effect.zipRight(t.display(query + ' '), t.readLine),
+    })),
+  )
+);
+
+/**
  * An implementation of UserPrompt using dumb console IO.
  */
 export const ConsolePrompt: Context.Tag.Service<UserPrompt> = {
@@ -88,15 +100,3 @@ export const ConsolePrompt: Context.Tag.Service<UserPrompt> = {
     return value;
   }),
 };
-
-/**
- * An implementation of UserPrompt using Effect's Terminal interface.
- */
-export const TerminalPrompt = Layer.effect(
-  UserPrompt,
-  Terminal.pipe(
-    Effect.map(t => ({
-      prompt: (query: string) => Effect.zipRight(t.display(query), t.readLine),
-    })),
-  )
-);
