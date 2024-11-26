@@ -1,4 +1,3 @@
-import cliTest from './test/cli.ts';
+import cliTest from './cli.test.ts';
 
 cliTest('./build/bin/dfi');
-

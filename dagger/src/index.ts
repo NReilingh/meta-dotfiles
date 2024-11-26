@@ -79,7 +79,7 @@ export class MetaDotfiles {
   @func()
   async integrationTest (source: Directory): Promise<Container> {
     return (await this.build(source))
-      .withExec(["bun", "run", "test-ci:e2e"]);
+      .withExec(["bun", "run", "ci:test:e2e"]);
   }
 
   /**
