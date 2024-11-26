@@ -32,6 +32,8 @@ export class MetaDotfiles {
       .from(`oven/bun:${versions.bun}`)
       .withDirectory("/src", source)
       .withWorkdir("/src")
+      // Fool Bun into outputting GHA annotations.
+      .withEnvVariable('GITHUB_ACTIONS', 'true')
       .withExec(["bun", "install"]);
   }
 
