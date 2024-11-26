@@ -20,9 +20,9 @@
     ]
   },
   "files": [
-    "./src/main.ts",
-    "./src/lib/manual.ts",
-    "./src/lib/manual.test.ts",
+    "src/main.ts",
+    "src/lib/manual.ts",
+    "src/lib/manual.unit_test.ts",
   ],
   // Get here eventually instead of "files":
   // "include": ["src/**/*.ts"],

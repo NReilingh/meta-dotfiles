@@ -45,16 +45,16 @@ export class MetaDotfiles {
   }
 
   /**
-   * Returns a linted container after running tests
+   * Returns a linted container after running unit tests
    */
   @func()
   async test (source: Directory): Promise<Container> {
     return (await this.buildEnvironment(source))
-      .withExec(["bun", "run", "test"]);
+      .withExec(["bun", "run", "test:unit"]);
   }
 
   /**
-   * Returns the output of testing with coverage information
+   * Returns the output of unit testing with coverage information
    */
   @func()
   async coverage (source: Directory): Promise<string> {

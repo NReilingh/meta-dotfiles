@@ -85,13 +85,13 @@ function makeMockTerminal (
       },
     }),
     readLine: Effect.succeed('a'),
-    display: displayMock ?? (() => Effect.succeed(undefined)),
+    display: displayMock ?? (() => Effect.void),
   });
 }
 
 describe("EffectPrompt service implementation", () => {
   test("prompt displays message", async () => {
-    const displayMock = mock(() => Effect.succeed(undefined));
+    const displayMock = mock(() => Effect.void);
     const program = UserPrompt.pipe(
       Effect.flatMap(p => p.prompt("What is your favorite color?")),
       Effect.provide(EffectPrompt),
@@ -104,7 +104,7 @@ describe("EffectPrompt service implementation", () => {
 
 describe("TerminalPrompt service implementation", () => {
   test("prompt displays message", async () => {
-    const displayMock = mock(() => Effect.succeed(undefined));
+    const displayMock = mock(() => Effect.void);
     const program = UserPrompt.pipe(
       Effect.flatMap(p => p.prompt("Append space here>")),
       Effect.provide(TerminalPrompt),

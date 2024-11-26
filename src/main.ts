@@ -1,29 +1,24 @@
 // import config from './config.ts';
 // import * as cmd from './commands/mod.ts';
 
-import { Command, Options, Prompt } from '@effect/cli';
+import { Command, Options } from '@effect/cli';
 import { Console, Effect, Boolean, pipe } from 'effect';
 import { BunContext, BunRuntime } from '@effect/platform-bun';
 
 // config.setup();
 
-// import { manualStep, promptScript, ConsoleIO, UserIO } from './lib/manual.ts';
+import { manualStep, EffectPrompt } from './lib/manual.ts';
 
 const testPrompt = Command.make('prompt', {}, () =>
   pipe(
     Effect.succeed(42),
-    Effect.flatMap((i) =>
-      pipe(
-        Prompt.text({
-          message: `What color is this number? ${i}`,
-          default: 'blue',
-        }),
-        Effect.map(p => ({
-          color: p,
-          number: i,
-        })),
-      )
-    ),
+    Effect.flatMap(i => manualStep(
+      `What color is this number? ${i}`,
+      p => ({
+        color: p,
+        number: i,
+      })
+    )),
     Effect.flatMap((a) => Console.log(a)),
   )
 );
@@ -48,14 +43,16 @@ const command = Command
     // cmd.sync,
   ]));
 
-const cli = Command.run(command, {
+export const cli = Command.run(command, {
   name: 'meta-dotfiles',
   version: '0.0.1',
 });
 
-cli(Bun.argv).pipe(
-  Effect.provide(BunContext.layer),
-  // Effect.provideService(UserIO, ConsoleIO),
-  BunRuntime.runMain
-);
-
+// God I love this feature so much
+if (import.meta.main) {
+  cli(Bun.argv).pipe(
+    Effect.provide(EffectPrompt),
+    Effect.provide(BunContext.layer),
+    BunRuntime.runMain
+  );
+}

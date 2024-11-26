@@ -16,3 +16,13 @@ jobs:
           version: "latest"
           args: run-ci --source=.:source
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+  ghtest:
+    name: build-gh
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install bun
+        uses: oven-sh/setup-bun
+      - name: Install dependencies # (assuming your project has dependencies)
+        run: bun install # You can use npm/yarn/pnpm instead if you prefer
+      - name: Run tests
+        run: bun run test:unit

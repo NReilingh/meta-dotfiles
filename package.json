@@ -7,17 +7,20 @@
     "npm-run-all2": "7.0.1"
   },
   "scripts": {
-    "dev": "bun test --watch --coverage",
-    "dev-e2e": "bun test --watch ./src/integration/dev.ts",
     "compile": "run-p compile:*",
     "compile:local": "bun build ./src/main.ts --compile --outfile build/bin/dfi",
     "compile:darwin-arm64": "bun build ./src/main.ts --compile --target=bun-darwin-arm64 --outfile build/bin/dfi-darwin-arm64",
     "compile:darwin-x64": "bun build ./src/main.ts --compile --target=bun-darwin-x64 --outfile build/bin/dfi-darwin-x64",
-    "start": "run-p -l 'compile:local --watch' 'lint --watch --preserveWatchOutput'",
-    "test": "bun test --coverage",
-    "test:e2e": "bun test ./src/integration/dev.ts",
-    "test-ci:e2e": "bun test ./src/integration/ci.ts",
-    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters --pretty --skipLibCheck"
+    "dev": "run-p -l dev:p:*",
+    "dev:test": "bun test --watch --coverage",
+    "dev:lint": "bun run lint --watch",
+    "dev:p:test": "bun run dev:test",
+    "dev:p:lint": "bun run dev:lint --preserveWatchOutput",
+    "lint": "tsc --noEmit --noUnusedLocals --noUnusedParameters --pretty --skipLibCheck",
+    "test": "bun test --coverage unit e2e",
+    "test:unit": "bun test --coverage unit",
+    "test:e2e": "bun test e2e",
+    "test-ci:e2e": "bun test ./src/integration/ci.ts"
   },
   "peerDependencies": {
     "typescript": "5.7.2"
