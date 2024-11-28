@@ -3,7 +3,7 @@
   "module": "src/main.ts",
   "type": "module",
   "devDependencies": {
-    "@types/bun": "1.1.13",
+    "@types/bun": "1.1.14",
     "npm-run-all2": "7.0.1"
   },
   "scripts": {
@@ -30,11 +30,11 @@
     "typescript": "5.7.2"
   },
   "dependencies": {
-    "@effect/cli": "0.48.25",
-    "@effect/platform": "0.69.25",
-    "@effect/platform-bun": "0.49.27",
+    "@effect/cli": "0.48.27",
+    "@effect/platform": "0.69.27",
+    "@effect/platform-bun": "0.49.29",
     "common-path-prefix": "3.0.0",
-    "effect": "3.10.16",
+    "effect": "3.10.18",
     "xstate": "5.19.0"
   }
 }
