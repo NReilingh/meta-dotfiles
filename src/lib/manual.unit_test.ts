@@ -6,7 +6,7 @@ import {
   TerminalPrompt,
 } from './manual.ts';
 import { Effect, Context, Option, pipe } from 'effect';
-import { test, expect, describe, mock } from 'bun:test';
+import { beforeAll, afterEach, test, expect, describe, mock } from 'bun:test';
 
 function makeMockPrompt (
   writeMock?: (x: any) => Effect.Effect<string>, readString?: string
@@ -116,6 +116,13 @@ describe("TerminalPrompt service implementation", () => {
 });
 
 describe("ConsolePrompt service implementation", () => {
+  let saveConsole: Console;
+  beforeAll(() => {
+    saveConsole = globalThis.console;
+  });
+  afterEach(() => {
+    globalThis.console = saveConsole;
+  });
   function makeMockConsole (
     logMock?: (x: any) => void,
     readOpts?: {
