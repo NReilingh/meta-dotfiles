@@ -1,4 +1,3 @@
-import * as fs from 'node:fs/promises';
 import { dirname, join, normalize } from 'node:path';
 import common from 'common-path-prefix';
 
@@ -10,23 +9,23 @@ import common from 'common-path-prefix';
 export abstract class Path {
   private path: string;
 
-  constructor (path: string) {
+  constructor (pathStr: string) {
     // All paths are to be normalized.
-    if (path.length === 0) {
+    if (pathStr.length === 0) {
       throw new Error('Path cannot be empty');
     }
-    this.path = normalize(path);
+    this.path = normalize(pathStr);
     // Remove final character if it is a slash
     if (this.path[this.path.length - 1] === '/') {
       this.path = this.path.slice(0, -1);
     }
   }
 
-  abstract dirname (): Path;
+  abstract get dirname (): Path;
   abstract join (suffix: RelativePath): Path;
 
   static commonPrefix (...paths: Path[]): Path | false {
-    const prefix = common(paths.map(path => path.toString()));
+    const prefix = common(paths.map(path => path.unsafeString));
     if (prefix.length === 0) {
       return false;
     }
@@ -39,19 +38,20 @@ export abstract class Path {
   }
 
   hasPrefix (prefix: Path): boolean {
-    return this.commonPrefix(prefix).toString() === prefix.toString();
+    const thisPrefix = this.commonPrefix(prefix);
+    return !!thisPrefix && thisPrefix.unsafeString === prefix.unsafeString;
   }
 
-  toString (): string {
+  get unsafeString (): string {
     return this.path;
   }
   static isAbsolute (path: string): boolean {
     return path[0] === '/';
   }
-  numComponents (): number {
-    return this.components().length;
+  get numComponents (): number {
+    return this.components.length;
   }
-  components (): string[] {
+  get components (): string[] {
     return this.path.split('/').filter(c => c.length >= 1);
   }
 }
@@ -65,11 +65,11 @@ export class RelativePath extends Path {
     super(path);
   }
 
-  dirname (): RelativePath {
-    return new RelativePath(dirname(this.toString()));
+  get dirname (): RelativePath {
+    return new RelativePath(dirname(this.unsafeString));
   }
   join (suffix: RelativePath): RelativePath {
-    return new RelativePath(join(this.toString(), suffix.toString()));
+    return new RelativePath(join(this.unsafeString, suffix.unsafeString));
   }
 
   /**
@@ -77,13 +77,13 @@ export class RelativePath extends Path {
    * Derive an absolute path relative to the current working directory.
    *
    */
-  absolute (): AbsolutePath {
+  get absolute (): AbsolutePath {
     return this.resolve(new AbsolutePath(process.cwd()));
   }
   resolve (relativeTo: AbsolutePath): AbsolutePath {
-    const relComponents = this.components();
+    const relComponents = this.components;
     if (relComponents.includes('..')) {
-      let parentCount = relativeTo.numComponents();
+      let parentCount = relativeTo.numComponents;
       for (const component of relComponents) {
         if (component === '..') {
           parentCount--;
@@ -95,7 +95,7 @@ export class RelativePath extends Path {
         }
       }
     }
-    return new AbsolutePath(join(relativeTo.toString(), this.toString()));
+    return new AbsolutePath(join(relativeTo.unsafeString, this.unsafeString));
   }
 }
 
@@ -119,29 +119,20 @@ export class AbsolutePath extends Path {
     } else if (!Path.isAbsolute(path) && relativeTo !== undefined) {
       const rel = new RelativePath(path);
       const abs = rel.resolve(relativeTo);
-      super(abs.toString());
+      super(abs.unsafeString);
     } else {
       throw new Error('Invalid arguments');
     }
   }
 
-  dirname (): AbsolutePath {
-    return new AbsolutePath(dirname(this.toString()));
+  get dirname (): AbsolutePath {
+    return new AbsolutePath(dirname(this.unsafeString));
   }
   join (suffix: RelativePath): AbsolutePath {
-    return new AbsolutePath(join(this.toString(), suffix.toString()));
+    return new AbsolutePath(join(this.unsafeString, suffix.unsafeString));
   }
-
-  get bunFile (): ReturnType<typeof Bun.file> {
-    return Bun.file(this.toString());
-  }
-
-  bunWrite (input: any): ReturnType<typeof Bun.write> {
-    return Bun.write(this.toString(), input);
-  }
-
-  readDir (): ReturnType<typeof fs.readdir> {
-    return fs.readdir(this.toString(), { withFileTypes: true });
+  get use (): string {
+    return this.unsafeString;
   }
 }
 

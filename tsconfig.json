@@ -22,7 +22,9 @@
   "files": [
     "src/main.ts",
     "src/lib/manual.ts",
-    "src/lib/manual.unit_test.ts"
+    "src/lib/manual.unit_test.ts",
+    "src/core/FileSystem/Path.ts",
+    "src/core/FileSystem/Path.unit_test.ts"
   ],
   // Get here eventually instead of "files":
   // "include": ["src/**/*.ts"],
