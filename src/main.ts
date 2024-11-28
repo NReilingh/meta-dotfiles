@@ -43,7 +43,7 @@ const command = Command
     // cmd.sync,
   ]));
 
-export const cli = Command.run(command, {
+const cli = Command.run(command, {
   name: 'meta-dotfiles',
   version: '0.0.1',
 });
