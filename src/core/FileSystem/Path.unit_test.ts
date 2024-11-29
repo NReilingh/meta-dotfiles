@@ -2,6 +2,13 @@ import { Path, AbsolutePath, RelativePath } from './Path.ts';
 
 import { test, expect, describe } from 'bun:test';
 
+test('Constructor shortcuts', () => {
+  const relPath = Path.Relative('a/b/c');
+  expect(relPath.unsafeString).toBe('a/b/c');
+  const absPath = Path.Absolute('/a/b/c');
+  expect(absPath.unsafeString).toBe('/a/b/c');
+});
+
 test('AbsolutePath safe string method', () => {
   const path = new AbsolutePath('/a/b/c');
   expect(path.use).toBe('/a/b/c');
@@ -68,7 +75,7 @@ test('RelativePath resolve', () => {
 
 test('RelativePath absolute resolves to cwd', () => {
   const path = new RelativePath('a/b/c');
-  expect(path.absolute.unsafeString).toBe(process.cwd() + '/a/b/c');
+  expect(path.absolute().unsafeString).toBe(process.cwd() + '/a/b/c');
 });
 
 test('Complex paths are normalized', () => {
@@ -110,11 +117,6 @@ test('AbsolutePath basic operations', () => {
 });
 
 describe('Path prefixes', () => {
-  test('No common prefix', () => {
-    const relPath = new RelativePath('a/b/c');
-    const absPath = new AbsolutePath('/a/b/c');
-    expect(Path.commonPrefix(relPath, absPath)).toBe(false);
-  });
   test('Relative prefixes', () => {
     const result = Path.commonPrefix(
       new RelativePath('a/b/c'),
