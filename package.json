@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@effect/cli": "0.50.3",
-    "@effect/platform": "0.71.2",
+    "@effect/platform": "0.71.3",
     "@effect/platform-bun": "0.51.2",
     "common-path-prefix": "3.0.0",
     "effect": "3.11.7",
