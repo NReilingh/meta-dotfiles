@@ -35,6 +35,6 @@
     "@effect/platform-bun": "0.52.0",
     "common-path-prefix": "3.0.0",
     "effect": "3.12.0",
-    "xstate": "5.19.0"
+    "xstate": "5.19.1"
   }
 }
