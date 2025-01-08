@@ -27,7 +27,7 @@
     "ci:test:e2e": "bun test ./src/integration/ci.ts"
   },
   "peerDependencies": {
-    "typescript": "5.7.2"
+    "typescript": "5.7.3"
   },
   "dependencies": {
     "@effect/cli": "0.51.1",
