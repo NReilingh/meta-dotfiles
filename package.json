@@ -30,7 +30,7 @@
     "typescript": "5.7.3"
   },
   "dependencies": {
-    "@effect/cli": "0.54.3",
+    "@effect/cli": "0.54.4",
     "@effect/platform": "0.75.3",
     "@effect/platform-bun": "0.55.3",
     "common-path-prefix": "3.0.0",
