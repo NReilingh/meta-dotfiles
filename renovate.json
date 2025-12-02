@@ -1,5 +1,16 @@
 {
   "extends": ["config:recommended"],
   "baseBranches": ["renovatebot"],
-  "automerge": true
+  "automerge": true,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["(^|/)dagger\\.json$"],
+      "matchStrings": [
+        "\"engineVersion\":\\s*\"(?<currentValue>.*?)\""
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "dagger/dagger"
+    }
+  ]
 }
