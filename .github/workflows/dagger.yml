@@ -9,10 +9,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      -
-        name: Call Dagger Function
+      - name: Get Dagger version
+        id: dagger_version
+        uses: sagikazarmark/dagger-version-action
+      - name: Call Dagger Function
         uses: dagger/dagger-for-github@v7
         with:
-          version: "latest"
+          version: ${{ steps.dagger_version.outputs.version }}
           args: run-ci --source=.:source
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
