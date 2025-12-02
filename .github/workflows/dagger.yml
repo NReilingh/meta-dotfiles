@@ -11,9 +11,9 @@ jobs:
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Get Dagger version
         id: dagger_version
-        uses: sagikazarmark/dagger-version-action@v0.0.2
+        uses: sagikazarmark/dagger-version-action@250543f4f12e1aa0161bd427eeb48ce3710fb408 # v0.0.2
       - name: Call Dagger Function
-        uses: dagger/dagger-for-github@v7
+        uses: dagger/dagger-for-github@b81317a976cb7f7125469707321849737cd1b3bc # v7.0.6
         with:
           version: ${{ steps.dagger_version.outputs.version }}
           args: run-ci --source=.:source
