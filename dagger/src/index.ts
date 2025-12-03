@@ -9,7 +9,7 @@
  * if appropriate. All modules should have a short description.
  */
 
-import { dag, Container, Directory, object, func } from "@dagger.io/dagger"
+import { dag, Container, Directory, object, argument, func } from "@dagger.io/dagger"
 
 @object()
 export class MetaDotfiles {
@@ -30,8 +30,8 @@ export class MetaDotfiles {
     return dag
       .container()
       .from(`oven/bun:${versions.bun}`)
-      .withDirectory("/src", source)
-      .withWorkdir("/src")
+      .withDirectory("/work", source)
+      .withWorkdir("/work")
       // Fool Bun into outputting GHA annotations.
       .withEnvVariable('GITHUB_ACTIONS', 'true')
       .withExec(["bun", "install"]);
@@ -86,11 +86,24 @@ export class MetaDotfiles {
    * Returns the build artifact of all lints and tests passing
    */
   @func()
-  async runCi (source: Directory): Promise<string> {
+  async runCi (
+    @argument({
+      defaultPath: '/',
+      ignore: [
+        '**',
+        '!.tool-versions',
+        '!src/**',
+        '!bun.lockb',
+        '!package.json',
+        '!tsconfig.json'
+      ]
+    })
+    repo: Directory
+  ): Promise<string> {
     const [ , coverage] = await Promise.all([
-      (await this.lint(source)).sync(),
-      this.coverage(source),
-      (await this.integrationTest(source)).sync()
+      (await this.lint(repo)).sync(),
+      this.coverage(repo),
+      (await this.integrationTest(repo)).sync()
     ]);
     return coverage;
   }

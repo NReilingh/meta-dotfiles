@@ -2,17 +2,5 @@
   "name": "meta-dotfiles",
   "sdk": "typescript",
   "source": "dagger",
-  "engineVersion": "v0.15.4",
-  "views": [
-    {
-      "name": "source",
-      "patterns": [
-        "src/",
-        "bun.lockb",
-        "package.json",
-        "tsconfig.json",
-        ".tool-versions"
-      ]
-    }
-  ]
+  "engineVersion": "v0.19.7"
 }
