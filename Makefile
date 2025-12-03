@@ -13,5 +13,5 @@ test:
 .PHONY: ci
 
 ci:
-	dagger call run-ci --source=.:source
+	dagger call run-ci
 

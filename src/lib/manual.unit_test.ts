@@ -5,7 +5,7 @@ import {
   ConsolePrompt,
   TerminalPrompt,
 } from './manual.ts';
-import { Effect, Context, Option, pipe } from 'effect';
+import { Effect, Context, Option, pipe, Mailbox, Stream } from 'effect';
 import { beforeAll, afterEach, test, expect, describe, mock } from 'bun:test';
 
 function makeMockPrompt (
@@ -75,7 +75,7 @@ function makeMockTerminal (
 ): Context.Tag.Service<typeof Terminal> {
   return Terminal.of({
     columns: Effect.succeed(80),
-    readInput: Effect.succeed(<UserInput>{
+    readInput: Mailbox.fromStream(Stream.fromIterable<UserInput>([{
       input: Option.none(),
       key: {
         name: 'enter',
@@ -83,7 +83,7 @@ function makeMockTerminal (
         meta: false,
         shift: false,
       },
-    }),
+    }])),
     readLine: Effect.succeed('a'),
     display: displayMock ?? (() => Effect.void),
   });
