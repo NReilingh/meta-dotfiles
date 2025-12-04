@@ -14,10 +14,43 @@ import { dag, Container, Directory, object, argument, func } from "@dagger.io/da
 @object()
 export class MetaDotfiles {
   /**
+  * The repo root directory to operate on
+  */
+  @func()
+  repo: Directory;
+
+  isCI: string;
+
+  constructor(
+    /**
+    * The repo root directory to operate on (will be calculated automatically)
+    */
+    @argument({
+      defaultPath: '/',
+      ignore: [
+        '**',
+        '!.tool-versions',
+        '!src/**',
+        '!bun.lockb',
+        '!package.json',
+        '!tsconfig.json'
+      ]
+    })
+    repo: Directory,
+    /**
+     * Pass 'true' to render GitHub Actions grouping marks in output
+     */
+    isCI: string = 'false'
+  ) {
+    this.repo = repo;
+    this.isCI = isCI;
+  }
+
+  /**
    * Returns a container for a Bun build environment
    */
-  private async buildEnvironment (source: Directory): Promise<Container> {
-    const toolVersions = await source.file('.tool-versions').contents();
+  private async buildEnvironment (): Promise<Container> {
+    const toolVersions = await this.repo.file('.tool-versions').contents();
     // parse string as space-separated key-value pairs delimited by line breaks
     const versions: {
       [key: string]: string;
@@ -30,10 +63,10 @@ export class MetaDotfiles {
     return dag
       .container()
       .from(`oven/bun:${versions.bun}`)
-      .withDirectory("/work", source)
+      .withDirectory("/work", this.repo)
       .withWorkdir("/work")
       // Fool Bun into outputting GHA annotations.
-      .withEnvVariable('GITHUB_ACTIONS', 'true')
+      .withEnvVariable('GITHUB_ACTIONS', this.isCI)
       .withExec(["bun", "install"]);
   }
 
@@ -41,8 +74,8 @@ export class MetaDotfiles {
    * Returns a container after linting the provided source directory
    */
   @func()
-  async lint (source: Directory): Promise<Container> {
-    return (await this.buildEnvironment(source))
+  async lint (): Promise<Container> {
+    return (await this.buildEnvironment())
       .withExec(["bun", "run", "lint"]);
   }
 
@@ -50,8 +83,8 @@ export class MetaDotfiles {
    * Returns a linted container after running unit tests
    */
   @func()
-  async test (source: Directory): Promise<Container> {
-    return (await this.buildEnvironment(source))
+  async test (): Promise<Container> {
+    return (await this.buildEnvironment())
       .withExec(["bun", "run", "test:unit"]);
   }
 
@@ -59,8 +92,8 @@ export class MetaDotfiles {
    * Returns the output of unit testing with coverage information
    */
   @func()
-  async coverage (source: Directory): Promise<string> {
-    return (await this.test(source))
+  async coverage (): Promise<string> {
+    return (await this.test())
       .stderr();
   }
 
@@ -68,8 +101,8 @@ export class MetaDotfiles {
    * Returns a container after successfully building the tested binary
    */
   @func()
-  async build (source: Directory): Promise<Container> {
-    return (await this.buildEnvironment(source))
+  async build (): Promise<Container> {
+    return (await this.buildEnvironment())
       .withExec(["bun", "run", "compile"]);
   }
 
@@ -77,8 +110,8 @@ export class MetaDotfiles {
    * Returns a container after running integration tests
    */
   @func()
-  async integrationTest (source: Directory): Promise<Container> {
-    return (await this.build(source))
+  async integrationTest (): Promise<Container> {
+    return (await this.build())
       .withExec(["bun", "run", "ci:test:e2e"]);
   }
 
@@ -112,7 +145,7 @@ export class MetaDotfiles {
    * Returns a container after bundling the source directory
    */
   @func()
-  async release (source: Directory): Promise<Directory> {
-    return (await this.build(source)).directory('./build/bin');
+  async release (): Promise<Directory> {
+    return (await this.build()).directory('./build/bin');
   }
 }
