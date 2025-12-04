@@ -1,6 +1,8 @@
 {
   "name": "meta-dotfiles",
-  "sdk": "typescript",
-  "source": "dagger",
-  "engineVersion": "v0.19.7"
+  "engineVersion": "v0.19.7",
+  "sdk": {
+    "source": "typescript"
+  },
+  "source": "dagger"
 }
