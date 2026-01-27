@@ -75,6 +75,8 @@ function makeMockTerminal (
 ): Context.Tag.Service<typeof Terminal> {
   return Terminal.of({
     columns: Effect.succeed(80),
+    rows: Effect.succeed(24),
+    isTTY: Effect.succeed(true),
     readInput: Mailbox.fromStream(Stream.fromIterable<UserInput>([{
       input: Option.none(),
       key: {
