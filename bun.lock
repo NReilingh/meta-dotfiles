@@ -5,7 +5,7 @@
     "": {
       "name": "meta-dotfiles",
       "dependencies": {
-        "@effect/cli": "0.75.0",
+        "@effect/cli": "0.75.1",
         "@effect/platform": "0.96.0",
         "@effect/platform-bun": "0.89.0",
         "common-path-prefix": "3.0.0",
@@ -22,7 +22,7 @@
     },
   },
   "packages": {
-    "@effect/cli": ["@effect/cli@0.75.0", "", { "dependencies": { "ini": "^4.1.3", "toml": "^3.0.0", "yaml": "^2.5.0" }, "peerDependencies": { "@effect/platform": "^0.96.0", "@effect/printer": "^0.49.0", "@effect/printer-ansi": "^0.49.0", "effect": "^3.21.0" } }, "sha512-SAJj1a1kb5yoSUz4yORmwjyOBv89y2wf2Q08KC/RwskUCZunj29eNZgl8Pkbv6nDFTGlre6EW/Kl2S/aOtQWwQ=="],
+    "@effect/cli": ["@effect/cli@0.75.1", "", { "dependencies": { "ini": "^4.1.3", "toml": "^3.0.0", "yaml": "^2.5.0" }, "peerDependencies": { "@effect/platform": "^0.96.0", "@effect/printer": "^0.49.0", "@effect/printer-ansi": "^0.49.0", "effect": "^3.21.1" } }, "sha512-aDZ1OZzaFAb6NyBOrP+Bl52eICds5ERI9aa67LzloJELt5SCWeNwthtaEacBvvMkwVUcykJ+YHcGCkD1t47g8g=="],
 
     "@effect/cluster": ["@effect/cluster@0.55.0", "", { "dependencies": { "kubernetes-types": "^1.30.0" }, "peerDependencies": { "@effect/platform": "^0.93.6", "@effect/rpc": "^0.72.2", "@effect/sql": "^0.48.6", "@effect/workflow": "^0.15.0", "effect": "^3.19.8" } }, "sha512-WeLrGpdtWhr4ap3kcW+G+qYyDqzEa65ypPWsU+sNU2gordENsAkxUQqo8taKr114AOk6WE74q0I7iWABcfGlhQ=="],
 
