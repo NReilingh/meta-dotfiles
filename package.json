@@ -32,7 +32,7 @@
   "dependencies": {
     "@effect/cli": "0.77.0",
     "@effect/platform": "0.97.1",
-    "@effect/platform-bun": "0.91.1",
+    "@effect/platform-bun": "0.91.2",
     "common-path-prefix": "3.0.0",
     "effect": "3.22.1",
     "xstate": "5.32.5"
