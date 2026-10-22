@@ -4,7 +4,7 @@
   "type": "module",
   "devDependencies": {
     "@types/bun": "1.4.3",
-    "npm-run-all2": "9.0.3"
+    "npm-run-all2": "9.0.4"
   },
   "scripts": {
     "compile": "run-p compile:local compile:p:*",
